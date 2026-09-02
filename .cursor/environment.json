@@ -1,0 +1,10 @@
+{
+  "name": "salt-and-page",
+  "install": "npm install",
+  "ports": [
+    {
+      "name": "vite",
+      "port": 5173
+    }
+  ]
+}
