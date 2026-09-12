@@ -1,0 +1,30 @@
+{
+  "name": "saltandpage",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "salt & page. — the cookbook for people who actually cook, not just save.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "npm run build && vite preview",
+    "deploy": "wrangler deploy",
+    "check": "npm run validate && vite build && wrangler deploy --dry-run",
+    "validate": "node scripts/validate.js",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "lucide-react": "^1.39.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.29.8",
+    "@cloudflare/vite-plugin": "^1.54.3",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.2.2",
+    "wrangler": "^4.128.0"
+  }
+}
