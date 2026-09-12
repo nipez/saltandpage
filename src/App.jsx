@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Link as LinkIcon, X, Trash2, Edit3, Share2, Clock, Users, ChefHat, Loader2, Check, AlertCircle, BookOpen, ArrowLeft, Copy, Download, Scale, RotateCcw, Camera, ImageOff, Calendar, MessageSquarePlus, ShoppingBasket, History, Maximize2, Minimize2, ChevronLeft, ChevronRight, Refrigerator, Sparkles, Flame, CalendarDays, Replace, Printer, FolderOpen, Tag, Star, Timer, Pause, Play, ThumbsUp, ThumbsDown, Image as ImageIcon, Settings as SettingsIcon, Mic, MicOff, Activity, Square, CheckSquare, Wand2, Send, Smartphone, Info, ExternalLink } from 'lucide-react';
-
-// Worker proxy — API key stays on the server; mobile can extract URLs.
-const ANTHROPIC_MESSAGES = '/api/ai';
+import { ANTHROPIC_MODEL, postAi } from './ai.js';
 
 const DIET_TAGS = [
   'keto', 'low-carb', 'vegetarian', 'vegan', 'gluten-free',
@@ -173,18 +171,11 @@ ${JSON.stringify(stepTexts, null, 2)}
 
 Return ONLY a JSON array of strings (one per step). No markdown, no preamble.`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 2000,
+    messages: [{ role: 'user', content: prompt }]
   });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const arrMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -229,18 +220,11 @@ Return ONLY a JSON object (no markdown, no preamble):
   ]
 }`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      messages: [{ role: 'user', content: prompt }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 3000,
+    messages: [{ role: 'user', content: prompt }]
   });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -263,22 +247,19 @@ async function extractRecipeFromPhoto(dataUrl) {
   const mediaType = m[1];
   const base64 = m[2];
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType, data: base64 }
-          },
-          {
-            type: 'text',
-            text: `Extract the recipe from this image. It might be a cookbook page, a printed recipe card, a handwritten note, a photo of a magazine, or similar.
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 2000,
+    messages: [{
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: { type: 'base64', media_type: mediaType, data: base64 }
+        },
+        {
+          type: 'text',
+          text: `Extract the recipe from this image. It might be a cookbook page, a printed recipe card, a handwritten note, a photo of a magazine, or similar.
 
 Return ONLY a JSON object (no markdown, no code fences, no preamble):
 {
@@ -299,14 +280,10 @@ Rules:
 - diet_tags: only from this list, only if clearly applicable: ${DIET_TAGS.join(', ')}
 - If handwriting is hard to read, do your best and use "[unclear]" for words you can't make out.
 - If the image isn't a recipe at all, return: {"error": "reason"}`
-          }
-        ]
-      }]
-    })
+        }
+      ]
+    }]
   });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -521,17 +498,11 @@ Return ONLY a JSON array (no markdown, no preamble):
   }
 ]`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      messages: [{ role: 'user', content: prompt }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 800,
+    messages: [{ role: 'user', content: prompt }]
   });
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const arrMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -722,18 +693,12 @@ Return ONLY a JSON object (no markdown, no preamble) with this exact shape:
 
 If the ingredient is unusual or you're uncertain, return what you know with appropriate hedging. Don't invent facts.`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 1000,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
   });
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = (data.content?.[0]?.text || '').trim();
   const cleanJson = text.replace(/^```json\s*|\s*```$/g, '').replace(/^```\s*|\s*```$/g, '').trim();
   return JSON.parse(cleanJson);
@@ -815,7 +780,7 @@ Rules:
   }
 
   const body = {
-    model: 'claude-sonnet-4-20250514',
+    model: ANTHROPIC_MODEL,
     max_tokens: 2000,
     messages: [{ role: 'user', content: prompt }]
   };
@@ -823,14 +788,7 @@ Rules:
     body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
   }
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
+  const data = await postAi(body);
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
@@ -874,18 +832,11 @@ ${JSON.stringify(stepTexts, null, 2)}
 Return ONLY a JSON array of integers or null, one per step in the same order. Example: [6, 1, 4, 1, null, null]
 No markdown, no preamble.`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 800,
-      messages: [{ role: 'user', content: prompt }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 800,
+    messages: [{ role: 'user', content: prompt }]
   });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('').trim();
   const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
   const arrMatch = cleaned.match(/\[[\s\S]*\]/);
@@ -1949,19 +1900,12 @@ Rules:
 - Skip the personal story and ad copy. Just the recipe.
 - If no recipe found, return: {"error": "reason"}`;
 
-  const response = await fetch(ANTHROPIC_MESSAGES, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }],
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }]
-    })
+  const data = await postAi({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 2000,
+    messages: [{ role: 'user', content: prompt }],
+    tools: [{ type: 'web_search_20250305', name: 'web_search' }]
   });
-
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
-  const data = await response.json();
   const text = data.content
     .filter(b => b.type === 'text')
     .map(b => b.text)
