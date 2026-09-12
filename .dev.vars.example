@@ -1,2 +1,11 @@
 # Copy to .dev.vars (never commit the real file)
 ANTHROPIC_API_KEY=
+
+# Optional: comma-separated extra Origins allowed to call POST /api/ai.
+# Localhost Vite/wrangler and the Worker host are always allowed without this.
+# Example:
+# ALLOWED_ORIGINS=https://saltandpage.example,https://www.saltandpage.example
+
+# Optional rate-limit overrides (defaults also set in wrangler.jsonc vars):
+# AI_RATE_LIMIT=20
+# AI_RATE_LIMIT_PERIOD=60
