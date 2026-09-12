@@ -12,7 +12,24 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
-  }
-  // Bindings (D1, R2, KV) land here when cloud sync starts.
+  },
+  "vars": {
+    // Optional: "ALLOWED_ORIGINS": "https://saltandpage.example,https://www.saltandpage.example",
+    "AI_RATE_LIMIT": "20",
+    "AI_RATE_LIMIT_PERIOD": "60"
+  },
+  // Create once, then paste ids (see README):
+  //   npx wrangler kv namespace create AI_RATE_LIMIT_KV
+  //   npx wrangler kv namespace create AI_RATE_LIMIT_KV --preview
+  // Local `wrangler dev` / Vite uses an in-memory KV mock with these placeholders.
+  "kv_namespaces": [
+    {
+      "binding": "AI_RATE_LIMIT_KV",
+      "id": "c62739d36b9d4df896d9a81e7a4ae0e6",
+      "preview_id": "d0aea2dadd3a487d80ca5e2ed185a40d"
+    }
+  ]
+  // Optional stronger edge limiter (period must be 10 or 60):
+  // "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "874201", "simple": { "limit": 20, "period": 60 } }]
   // Secrets: `npx wrangler secret put ANTHROPIC_API_KEY`
 }
