@@ -6,6 +6,7 @@ const files = [
   'src/App.jsx',
   'src/main.jsx',
   'src/storage.js',
+  'src/ai.js',
   'worker/index.js',
   'worker/ai-guard.js'
 ];
