@@ -2345,38 +2345,61 @@ export default function App() {
           border-bottom-color: var(--ink);
         }
 
-        /* Empty cookbook — elevated path cards (interaction containers, not decorative cards) */
+        /* Empty cookbook — editorial path CTAs (interaction, not marketing cards) */
         .path-card {
           text-align: left;
-          background: var(--paper);
-          border: 1px solid var(--line);
-          padding: 28px 26px;
+          background: transparent;
+          border: none;
+          border-top: 1px solid var(--line);
+          padding: 28px 4px 30px;
           cursor: pointer;
-          transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s, background 0.25s;
+          transition: border-color 0.3s, background 0.3s, transform 0.3s, box-shadow 0.3s;
           width: 100%;
           font-family: inherit;
           color: inherit;
           display: block;
+          position: relative;
         }
-        .path-card:hover {
-          border-color: var(--ink);
-          background: var(--paper-deep);
-          transform: translateY(-2px);
-          box-shadow: 0 14px 32px -14px rgba(31, 24, 16, 0.18);
+        .path-card:last-child {
+          border-bottom: 1px solid var(--line);
+        }
+        @media (min-width: 640px) {
+          .path-card,
+          .path-card:last-child {
+            border: 1px solid var(--line);
+            padding: 32px 28px 34px;
+            background: var(--paper);
+          }
+          .path-card:hover {
+            border-color: var(--ink);
+            background: var(--paper-deep);
+            box-shadow: 0 18px 40px -18px rgba(31, 24, 16, 0.16);
+            transform: translateY(-1px);
+          }
         }
         .path-card:hover .path-card-title { color: var(--tomato); }
         .path-card:focus-visible {
           outline: 2px solid var(--tomato);
           outline-offset: 3px;
         }
-        .path-card-title { transition: color 0.2s; }
+        .path-card-kicker {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: 15px;
+          color: var(--tomato);
+          margin-bottom: 14px;
+          display: block;
+        }
+        .path-card-title { transition: color 0.25s; }
         .path-card-arrow {
           color: var(--ink-faint);
-          transition: color 0.2s, transform 0.2s;
+          transition: color 0.25s, transform 0.25s;
+          flex-shrink: 0;
         }
         .path-card:hover .path-card-arrow {
           color: var(--tomato);
-          transform: translateX(3px);
+          transform: translateX(4px);
         }
 
         .empty-home-hero {
@@ -2385,34 +2408,185 @@ export default function App() {
         .empty-home-hero::after {
           content: '';
           display: block;
-          width: 48px;
+          width: 40px;
           height: 1px;
           background: var(--tomato);
-          margin-top: 28px;
-          opacity: 0.85;
+          margin-top: 32px;
+          opacity: 0.9;
         }
 
-        .how-strip {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-          border-top: 1px solid var(--line);
-          padding-top: 28px;
+        /* Magazine feature spread — typography-led chapters */
+        .feature-spread {
+          margin-top: 8px;
         }
-        @media (min-width: 640px) {
-          .how-strip {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 28px;
+        .pull-quote {
+          position: relative;
+          padding: 36px 0 40px;
+          margin-bottom: 8px;
+          border-top: 1px solid var(--line);
+        }
+        .pull-quote-mark {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 300;
+          font-size: clamp(3.5rem, 10vw, 5.5rem);
+          line-height: 0.8;
+          color: var(--tomato);
+          opacity: 0.35;
+          display: block;
+          margin-bottom: 8px;
+          user-select: none;
+        }
+        .pull-quote-text {
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 400;
+          font-size: clamp(1.65rem, 3.6vw, 2.35rem);
+          line-height: 1.25;
+          letter-spacing: -0.02em;
+          color: var(--ink);
+          max-width: 18ch;
+        }
+        .pull-quote-aside {
+          margin-top: 18px;
+          max-width: 36ch;
+          font-size: 14px;
+          line-height: 1.65;
+          color: var(--ink-soft);
+        }
+        @media (min-width: 768px) {
+          .pull-quote {
+            display: grid;
+            grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+            gap: 40px 48px;
+            align-items: end;
+            padding: 44px 0 48px;
+          }
+          .pull-quote-aside {
+            margin-top: 0;
+            padding-bottom: 6px;
           }
         }
-        .how-step-num {
+
+        .feature-chapters {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 0;
+          border-top: 1px solid var(--line);
+        }
+        .feature-chapter {
+          padding: 28px 0 30px;
+          border-bottom: 1px solid var(--line);
+          opacity: 0;
+          animation: chapterIn 0.55s ease-out forwards;
+        }
+        .feature-chapter:nth-child(1) { animation-delay: 0.08s; }
+        .feature-chapter:nth-child(2) { animation-delay: 0.14s; }
+        .feature-chapter:nth-child(3) { animation-delay: 0.2s; }
+        .feature-chapter:nth-child(4) { animation-delay: 0.26s; }
+        .feature-chapter:nth-child(5) { animation-delay: 0.32s; }
+        @keyframes chapterIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .feature-chapter {
+            opacity: 1;
+            animation: none;
+          }
+        }
+        @media (min-width: 768px) {
+          .feature-chapters {
+            grid-template-columns: 1.25fr 0.9fr;
+            column-gap: 48px;
+          }
+          .feature-chapter {
+            padding: 32px 0 34px;
+          }
+          .feature-chapter--lead {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 28px 40px;
+            align-items: start;
+            padding-top: 40px;
+            padding-bottom: 44px;
+          }
+          .feature-chapter--lead .feature-chapter-body {
+            max-width: 44ch;
+          }
+          .feature-chapter--span {
+            grid-column: 1 / -1;
+            max-width: 52ch;
+            padding-top: 36px;
+            padding-bottom: 36px;
+          }
+          .feature-chapter--close {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 20px 32px;
+            align-items: baseline;
+            padding-top: 36px;
+            padding-bottom: 8px;
+            border-bottom: none;
+          }
+          .feature-chapter--close .feature-chapter-body {
+            max-width: 48ch;
+          }
+        }
+        .feature-chapter-num {
           font-family: 'Fraunces', Georgia, serif;
           font-style: italic;
           font-weight: 400;
-          font-size: 22px;
+          font-size: 20px;
           color: var(--tomato);
           line-height: 1;
+          margin-bottom: 12px;
+        }
+        .feature-chapter--lead .feature-chapter-num {
+          font-size: clamp(2.5rem, 5vw, 3.25rem);
+          margin-bottom: 0;
+          padding-top: 4px;
+        }
+        .feature-chapter-title {
+          font-family: 'Fraunces', Georgia, serif;
+          font-weight: 400;
+          font-size: 1.35rem;
+          letter-spacing: -0.015em;
+          line-height: 1.2;
           margin-bottom: 10px;
+          color: var(--ink);
+        }
+        .feature-chapter--lead .feature-chapter-title {
+          font-size: clamp(1.6rem, 3vw, 2rem);
+          margin-bottom: 14px;
+        }
+        .feature-chapter-body {
+          font-size: 14px;
+          line-height: 1.65;
+          color: var(--ink-soft);
+          max-width: 34ch;
+        }
+
+        .keep-building-note {
+          margin-top: 22px;
+          padding-top: 20px;
+          border-top: 1px dashed var(--line);
+          display: grid;
+          gap: 6px;
+        }
+        @media (min-width: 640px) {
+          .keep-building-note {
+            grid-template-columns: auto 1fr;
+            gap: 16px 28px;
+            align-items: baseline;
+          }
+        }
+        .keep-building-note-label {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-size: 15px;
+          color: var(--tomato);
         }
 
         .tag-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--line); border-radius: 100px; font-size: 11px; letter-spacing: 0.05em; color: var(--ink-soft); background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; }
@@ -2879,10 +3053,10 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
   // doesn't read as an unfinished list shell over a void.
   if (isEmptyCookbook) {
     return (
-      <div className="max-w-4xl mx-auto px-8 py-12 md:py-20">
+      <div className="max-w-5xl mx-auto px-8 py-12 md:py-20">
         <EmptyCookbookHome onAddUrl={() => onAdd('url')} onAddManual={() => onAdd('manual')} />
-        <footer className="mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
-          <p className="label text-center">Saved locally · ready when you are</p>
+        <footer className="mt-16 md:mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+          <p className="label text-center">Private by default · saved on this device</p>
         </footer>
       </div>
     );
@@ -3100,7 +3274,7 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
               <p className="display text-2xl font-light mb-1" style={{ color: 'var(--ink)' }}>
                 A cookbook grows one recipe at a time.
               </p>
-              <p className="text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '36ch' }}>
+              <p className="text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '38ch' }}>
                 Paste another URL, or write one in by hand — both land on this shelf.
               </p>
               <div className="keep-building-actions">
@@ -3110,6 +3284,12 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
                 <button type="button" className="btn-ghost" style={{ border: '1px solid var(--line)' }} onClick={() => onAdd('manual')}>
                   <Edit3 size={14} /> Add by hand
                 </button>
+              </div>
+              <div className="keep-building-note">
+                <span className="keep-building-note-label">Once it’s here</span>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '48ch', margin: 0 }}>
+                  Cook mode keeps the screen awake. Scale stays kitchen-real. Shopping, pantry, and the week’s plan live a tap away — without turning this into another feed.
+                </p>
               </div>
             </section>
           )}
@@ -3123,18 +3303,49 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
   );
 }
 
+const EMPTY_HOME_CHAPTERS = [
+  {
+    num: '01',
+    title: 'Cook mode, built for the stove',
+    body: 'Big type you can read across the counter. Timers that stay with you. A screen that refuses to sleep mid-sauce.',
+    lead: true
+  },
+  {
+    num: '02',
+    title: 'Scale that still looks like a recipe',
+    body: 'Halve a stew, double a bake — fractions stay kitchen-real. No 0.375 cups of flour staring back at you.'
+  },
+  {
+    num: '03',
+    title: 'Shop from the shelf',
+    body: 'Pull a shopping list from the recipes you’re actually making. One aisle-minded list, not five open tabs.'
+  },
+  {
+    num: '04',
+    title: 'Open the pantry, ask dinner',
+    body: 'Stock what’s on hand. See what you can make tonight — ranked by what matches, not what trends.',
+    span: true
+  },
+  {
+    num: '05',
+    title: 'Yours, on this device',
+    body: 'Private by default. Recipes live locally to start — no account wall between you and the first page.',
+    close: true
+  }
+];
+
 function EmptyCookbookHome({ onAddUrl, onAddManual }) {
   return (
     <div className="fadein">
-      <header className="empty-home-hero mb-12 md:mb-14 max-w-2xl">
+      <header className="empty-home-hero mb-12 md:mb-16 max-w-2xl">
         <div className="label mb-5">Your cookbook</div>
         <h1
           className="leading-none mb-6"
           style={{
             fontFamily: 'Fraunces, Georgia, serif',
             fontWeight: 400,
-            fontSize: 'clamp(2.75rem, 7vw, 4.25rem)',
-            letterSpacing: '-0.02em',
+            fontSize: 'clamp(2.85rem, 7.2vw, 4.5rem)',
+            letterSpacing: '-0.025em',
             color: 'var(--ink)'
           }}
         >
@@ -3143,88 +3354,88 @@ function EmptyCookbookHome({ onAddUrl, onAddManual }) {
         </h1>
         <p
           className="display text-xl md:text-2xl font-light leading-snug"
-          style={{ color: 'var(--ink-soft)', maxWidth: '28ch' }}
+          style={{ color: 'var(--ink-soft)', maxWidth: '26ch' }}
         >
-          The cookbook for people who actually cook,{' '}
+          A quiet cookbook for people who cook —{' '}
           <em style={{ color: 'var(--ink)', fontStyle: 'italic', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400 }}>
-            not just save
+            not another recipe feed
           </em>
           .
         </p>
       </header>
 
-      <section className="mb-14 md:mb-16" aria-label="Start your cookbook">
-        <div className="label mb-4">Begin with</div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 stagger">
+      <section className="mb-16 md:mb-20" aria-label="Start your cookbook">
+        <div className="label mb-5">Begin with</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 sm:gap-5 stagger">
           <button type="button" className="path-card" onClick={onAddUrl}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <span
-                style={{
-                  width: 40, height: 40,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1px solid var(--line)', color: 'var(--tomato)'
-                }}
-              >
-                <LinkIcon size={18} />
-              </span>
-              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="path-card-kicker">From the web</span>
+                <div className="path-card-title display text-2xl md:text-3xl mb-3" style={{ fontWeight: 400 }}>
+                  Paste a URL
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '32ch' }}>
+                  From any food blog. We skip the life story and keep the recipe — ingredients, steps, the photo if it’s honest.
+                </p>
+              </div>
+              <ChevronRight size={18} className="path-card-arrow" style={{ marginTop: 2 }} aria-hidden="true" />
             </div>
-            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
-              Paste a URL
-            </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-              From any food blog. We skip the life story and pull just the recipe.
-            </p>
           </button>
 
           <button type="button" className="path-card" onClick={onAddManual}>
-            <div className="flex items-start justify-between gap-4 mb-5">
-              <span
-                style={{
-                  width: 40, height: 40,
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1px solid var(--line)', color: 'var(--tomato)'
-                }}
-              >
-                <Edit3 size={18} />
-              </span>
-              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="path-card-kicker">From memory</span>
+                <div className="path-card-title display text-2xl md:text-3xl mb-3" style={{ fontWeight: 400 }}>
+                  Add by hand
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '32ch' }}>
+                  Grandma’s card, a napkin scrawl, the dish you finally wrote down. Typed in, kept like paper.
+                </p>
+              </div>
+              <ChevronRight size={18} className="path-card-arrow" style={{ marginTop: 2 }} aria-hidden="true" />
             </div>
-            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
-              Add by hand
-            </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-              Grandma’s card, a napkin note, or anything that isn’t online.
-            </p>
           </button>
         </div>
       </section>
 
-      <section aria-label="How it works">
-        <div className="label mb-5">How it works</div>
-        <div className="how-strip">
+      <section className="feature-spread" aria-label="Inside the cookbook">
+        <div className="label mb-2">Inside the kitchen</div>
+
+        <blockquote className="pull-quote">
           <div>
-            <div className="how-step-num">01</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Import</div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-              Paste a link or write it in. One clean recipe card.
+            <span className="pull-quote-mark" aria-hidden="true">“</span>
+            <p className="pull-quote-text">
+              Built for the counter — not the scroll.
             </p>
           </div>
-          <div>
-            <div className="how-step-num">02</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Cook</div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-              Big type, timers, and a screen that stays awake.
-            </p>
-          </div>
-          <div>
-            <div className="how-step-num">03</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Saves locally</div>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
-              Yours, on this device — no account required to start.
-            </p>
-          </div>
+          <p className="pull-quote-aside">
+            Most recipe apps want another save. Salt &amp; page wants the next meal: extract cleanly, cook with confidence, scale without nonsense, shop once, cook again.
+          </p>
+        </blockquote>
+
+        <div className="feature-chapters">
+          {EMPTY_HOME_CHAPTERS.map((ch) => (
+            <article
+              key={ch.num}
+              className={`feature-chapter${ch.lead ? ' feature-chapter--lead' : ''}${ch.span ? ' feature-chapter--span' : ''}${ch.close ? ' feature-chapter--close' : ''}`}
+            >
+              <div className="feature-chapter-num" aria-hidden="true">{ch.num}</div>
+              <div className="feature-chapter-body-wrap">
+                <h2 className="feature-chapter-title">{ch.title}</h2>
+                <p className="feature-chapter-body" style={{ margin: 0 }}>{ch.body}</p>
+              </div>
+            </article>
+          ))}
         </div>
+
+        <p
+          className="text-sm mt-10 leading-relaxed"
+          style={{ color: 'var(--ink-faint)', maxWidth: '48ch' }}
+        >
+          Later: a week’s meal plan, a cook journal, notes and substitutions when a recipe needs your voice —
+          all without turning dinner into a dashboard.
+        </p>
       </section>
     </div>
   );
