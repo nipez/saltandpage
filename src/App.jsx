@@ -1035,6 +1035,35 @@ function formatStepDuration(min) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/** Normalize freeform time strings for card metadata ("20 mins" → "20 min"). */
+function formatRecipeTime(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  return s
+    .replace(/\bminutes?\b/gi, 'min')
+    .replace(/\bmins\b/gi, 'min')
+    .replace(/\bhours?\b/gi, 'hr')
+    .replace(/\bhrs\b/gi, 'hr');
+}
+
+/**
+ * Consistent card eyebrow: prefer Serves N, else ingredient count with correct plural.
+ * Strips redundant "serves/servings/makes" prefixes from stored servings strings.
+ */
+function formatCardEyebrow(recipe) {
+  const raw = (recipe.servings || '').trim();
+  if (raw) {
+    const stripped = raw
+      .replace(/^(serves|servings?|makes|yield)\s*:?\s*/i, '')
+      .trim();
+    if (stripped) return `Serves ${stripped}`;
+  }
+  const n = (recipe.ingredients || []).length;
+  if (n <= 0) return 'Recipe';
+  return n === 1 ? '1 ingredient' : `${n} ingredients`;
+}
+
 // ---------- Ingredient ↔ step matching ----------
 // Connects ingredients to steps so cook mode can:
 //   1. Highlight which ingredients are used in the current step (sidebar)
@@ -2225,10 +2254,80 @@ export default function App() {
         .input:focus { outline: none; border-bottom-color: var(--ink); }
         .input::placeholder { color: var(--ink-faint); }
 
-        .card { background: var(--paper); border: 1px solid var(--line); padding: 28px; transition: all 0.25s; cursor: pointer; position: relative; }
+        .card { background: var(--paper); border: 1px solid var(--line); padding: 28px; transition: all 0.25s; cursor: pointer; position: relative; display: flex; flex-direction: column; height: 100%; }
         .card:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 12px 30px -10px rgba(31, 24, 16, 0.15); }
         .card:hover .card-title { color: var(--tomato); }
         .card-title { transition: color 0.2s; }
+        .card-media {
+          aspect-ratio: 16 / 10;
+          overflow: hidden;
+          border-bottom: 1px solid var(--line);
+          position: relative;
+          background: var(--paper-deep);
+          flex-shrink: 0;
+        }
+        .card-media-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: flex-end;
+          justify-content: flex-start;
+          padding: 20px 22px;
+          background:
+            linear-gradient(160deg, var(--paper-deep) 0%, #e4d8c4 55%, #dccfb8 100%);
+        }
+        .card-media-monogram {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: 42px;
+          line-height: 1;
+          color: var(--tomato);
+          opacity: 0.72;
+          user-select: none;
+        }
+        .card-body {
+          padding: 22px 24px 24px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+        }
+        .recipe-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        @media (min-width: 640px) {
+          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1024px) {
+          .recipe-grid.recipe-grid-roomy { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .list-toolbar {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 28px;
+          padding: 14px 16px;
+          background: var(--paper-deep);
+          border: 1px solid var(--line);
+        }
+        @media (min-width: 768px) {
+          .list-toolbar {
+            flex-direction: row;
+            align-items: center;
+            gap: 16px;
+          }
+        }
+        .list-toolbar .input {
+          border-bottom-color: transparent;
+          padding: 6px 0;
+        }
+        .list-toolbar .input:focus {
+          border-bottom-color: var(--ink);
+        }
 
         /* Empty cookbook — elevated path cards (interaction containers, not decorative cards) */
         .path-card {
@@ -2320,9 +2419,9 @@ export default function App() {
         .checkbox.checked { background: var(--ink); border-color: var(--ink); color: var(--paper); }
         .checkbox:hover { border-color: var(--ink-soft); }
 
-        @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .fadein { animation: fadein 0.4s ease-out; }
-        .stagger > * { animation: fadein 0.5s ease-out backwards; }
+        @keyframes fadein { from { opacity: 0.55; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .fadein { animation: fadein 0.35s ease-out; }
+        .stagger > * { animation: fadein 0.4s ease-out backwards; }
         .stagger > *:nth-child(1) { animation-delay: 0.05s; }
         .stagger > *:nth-child(2) { animation-delay: 0.1s; }
         .stagger > *:nth-child(3) { animation-delay: 0.15s; }
@@ -2787,33 +2886,40 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
         </button>
       </header>
 
-      <div className="mb-6 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-3 flex-1 max-w-md">
-          <Search size={16} style={{ color: 'var(--ink-faint)' }} />
+      <div className="list-toolbar">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Search size={16} style={{ color: 'var(--ink-soft)', flexShrink: 0 }} />
           <input
             className="input"
-            placeholder="Search anything — title, ingredient, step…"
+            placeholder="Search titles, ingredients, steps…"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            aria-label="Search cookbook"
           />
         </div>
-        {favoritesCount > 0 && (
+        <div className="flex items-center gap-1 flex-wrap">
+          {favoritesCount > 0 && (
+            <button
+              className="btn-ghost"
+              onClick={() => setFavoritesOnly(!favoritesOnly)}
+              style={{ color: favoritesOnly ? 'var(--tomato)' : 'var(--ink-soft)' }}
+            >
+              <Star size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
+              Favorites {favoritesOnly && `(${favoritesCount})`}
+            </button>
+          )}
           <button
             className="btn-ghost"
-            onClick={() => setFavoritesOnly(!favoritesOnly)}
-            style={{ color: favoritesOnly ? 'var(--tomato)' : 'var(--ink-soft)' }}
+            onClick={() => setPantryOpen(!pantryOpen)}
+            style={{
+              color: pantryOpen || isPantryMode ? 'var(--ink)' : 'var(--ink-soft)',
+              background: pantryOpen || isPantryMode ? 'var(--paper)' : 'transparent',
+              border: '1px solid var(--line)'
+            }}
           >
-            <Star size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
-            Favorites {favoritesOnly && `(${favoritesCount})`}
+            <Refrigerator size={14} /> Pantry {persistentCount > 0 && <span style={{ color: 'var(--tomato)', marginLeft: 2 }}>· {persistentCount}</span>}
           </button>
-        )}
-        <button
-          className="btn-ghost"
-          onClick={() => setPantryOpen(!pantryOpen)}
-          style={{ color: pantryOpen || isPantryMode ? 'var(--ink)' : 'var(--ink-soft)' }}
-        >
-          <Refrigerator size={14} /> Pantry {persistentCount > 0 && <span style={{ color: 'var(--tomato)', marginLeft: 2 }}>· {persistentCount}</span>}
-        </button>
+        </div>
       </div>
 
       {pantryOpen && (
@@ -2947,14 +3053,14 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
       )}
 
       {loading ? (
-        <div className="text-center py-24" style={{ color: 'var(--ink-faint)' }}>
+        <div className="text-center py-20" style={{ color: 'var(--ink-faint)' }}>
           <Loader2 className="spinning mx-auto mb-3" size={20} />
           <p className="label">Loading the cookbook</p>
         </div>
       ) : recipes.length === 0 ? (
         <EmptyState hasFilters={hasActiveFilters} onAdd={() => onAdd('url')} pantryMode={isPantryMode} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
+        <div className={`recipe-grid stagger${allRecipes.length >= 3 ? ' recipe-grid-roomy' : ''}`}>
           {recipes.map(item => {
             const recipe = item.recipe || item;
             const matchCount = item.matchCount;
@@ -2972,7 +3078,7 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
         </div>
       )}
 
-      <footer className="mt-24 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+      <footer className="mt-16 md:mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
         <p className="label text-center">Saved locally · {allRecipes.length} {allRecipes.length === 1 ? 'recipe' : 'recipes'}</p>
       </footer>
     </div>
@@ -3061,21 +3167,21 @@ function EmptyCookbookHome({ onAddUrl, onAddManual }) {
         <div className="how-strip">
           <div>
             <div className="how-step-num">01</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Import</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Import</div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
               Paste a link or write it in. One clean recipe card.
             </p>
           </div>
           <div>
             <div className="how-step-num">02</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Cook</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Cook</div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
               Big type, timers, and a screen that stays awake.
             </p>
           </div>
           <div>
             <div className="how-step-num">03</div>
-            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Saves locally</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Saves locally</div>
             <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
               Yours, on this device — no account required to start.
             </p>
@@ -3111,65 +3217,62 @@ function EmptyState({ hasFilters, onAdd, pantryMode }) {
 }
 
 function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showPhoto = !!(recipe.hero_image && !imgFailed);
+  const eyebrow = matchCount != null && !showPhoto
+    ? `${matchCount}/${pantrySize} match`
+    : formatCardEyebrow(recipe);
+  const prep = formatRecipeTime(recipe.prep_time);
+  const cook = formatRecipeTime(recipe.cook_time);
+  const monogram = (recipe.title || '?').trim().charAt(0).toUpperCase() || '·';
+  const hasMetaTimes = !!(prep || cook);
+
   return (
     <article className="card" onClick={onClick} style={{ padding: 0, overflow: 'hidden' }}>
-      {recipe.hero_image && (
-        <div style={{ aspectRatio: '16 / 10', overflow: 'hidden', borderBottom: '1px solid var(--line)', position: 'relative' }}>
+      <div className="card-media">
+        {!showPhoto && (
+          <div className="card-media-placeholder" aria-hidden="true">
+            <span className="card-media-monogram">{monogram}</span>
+          </div>
+        )}
+        {showPhoto && (
           <img
             src={recipe.hero_image}
-            alt={recipe.title}
+            alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-            onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onError={() => setImgFailed(true)}
           />
-          {matchCount != null && (
-            <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--ink)', color: 'var(--paper)', padding: '4px 10px', fontSize: 11, letterSpacing: '0.05em', borderRadius: 2 }}>
-              {matchCount}/{pantrySize} match
-            </div>
-          )}
-          {onToggleFavorite && (
-            <button
-              onClick={e => { e.stopPropagation(); onToggleFavorite(recipe); }}
-              style={{
-                position: 'absolute', top: 12, right: 12,
-                background: recipe.favorite ? 'var(--tomato)' : 'rgba(31, 24, 16, 0.6)',
-                color: 'var(--paper)',
-                border: 'none', cursor: 'pointer',
-                width: 32, height: 32, borderRadius: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backdropFilter: 'blur(4px)', transition: 'all 0.2s'
-              }}
-              title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Star size={14} fill={recipe.favorite ? 'currentColor' : 'none'} />
-            </button>
-          )}
-        </div>
-      )}
-      <div style={{ padding: 28, position: 'relative' }}>
-        {!recipe.hero_image && onToggleFavorite && (
+        )}
+        {matchCount != null && showPhoto && (
+          <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--ink)', color: 'var(--paper)', padding: '4px 10px', fontSize: 11, letterSpacing: '0.05em', borderRadius: 2 }}>
+            {matchCount}/{pantrySize} match
+          </div>
+        )}
+        {onToggleFavorite && (
           <button
             onClick={e => { e.stopPropagation(); onToggleFavorite(recipe); }}
             style={{
-              position: 'absolute', top: 16, right: 16,
-              background: 'transparent',
-              color: recipe.favorite ? 'var(--tomato)' : 'var(--ink-faint)',
-              border: 'none', cursor: 'pointer',
-              padding: 4
+              position: 'absolute', top: 12, right: 12,
+              background: recipe.favorite ? 'var(--tomato)' : (showPhoto ? 'rgba(31, 24, 16, 0.55)' : 'rgba(244, 237, 224, 0.85)'),
+              color: recipe.favorite ? 'var(--paper)' : (showPhoto ? 'var(--paper)' : 'var(--ink-soft)'),
+              border: showPhoto ? 'none' : '1px solid var(--line)',
+              cursor: 'pointer',
+              width: 32, height: 32, borderRadius: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(4px)', transition: 'all 0.2s'
             }}
             title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            <Star size={16} fill={recipe.favorite ? 'currentColor' : 'none'} />
+            <Star size={14} fill={recipe.favorite ? 'currentColor' : 'none'} />
           </button>
         )}
-        <div className="flex items-start justify-between mb-4" style={{ paddingRight: !recipe.hero_image ? 28 : 0 }}>
-          <div className="label">
-            {!recipe.hero_image && matchCount != null
-              ? `${matchCount}/${pantrySize} match`
-              : (recipe.servings || `${(recipe.ingredients || []).length} ingredients`)}
-          </div>
-          <div className="flex items-center gap-2" style={{ color: 'var(--ink-faint)' }}>
+      </div>
+      <div className="card-body">
+        <div className="flex items-start justify-between mb-3 gap-3">
+          <div className="label">{eyebrow}</div>
+          <div className="flex items-center gap-2" style={{ color: 'var(--ink-faint)', flexShrink: 0 }}>
             {(recipe.cook_log || []).length > 0 && (
               <span className="text-xs flex items-center gap-1" title={`${recipe.cook_log.length} cook log entries`}>
                 <BookOpen size={11} /> {recipe.cook_log.length}
@@ -3178,20 +3281,22 @@ function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite 
             {recipe.source_url && <LinkIcon size={12} />}
           </div>
         </div>
-        <h2 className="display card-title text-2xl leading-tight mb-4" style={{ fontWeight: 400 }}>
+        <h2 className="display card-title text-2xl leading-tight mb-3" style={{ fontWeight: 400 }}>
           {recipe.title}
         </h2>
         {(recipe.diet_tags || []).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {recipe.diet_tags.slice(0, 3).map(t => (
               <span key={t} className="tag-chip" style={{ pointerEvents: 'none' }}>{t}</span>
             ))}
           </div>
         )}
-        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--ink-faint)' }}>
-          {recipe.prep_time && <span className="flex items-center gap-1"><Clock size={11} />{recipe.prep_time}</span>}
-          {recipe.cook_time && <span className="flex items-center gap-1"><ChefHat size={11} />{recipe.cook_time}</span>}
-        </div>
+        {hasMetaTimes && (
+          <div className="flex items-center gap-4 text-xs mt-auto pt-1" style={{ color: 'var(--ink-faint)' }}>
+            {prep && <span className="flex items-center gap-1"><Clock size={11} />{prep}</span>}
+            {cook && <span className="flex items-center gap-1"><ChefHat size={11} />{cook}</span>}
+          </div>
+        )}
       </div>
     </article>
   );
