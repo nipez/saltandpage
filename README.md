@@ -46,7 +46,10 @@ Migration: `migrations/0001_init.sql`
 - `recipes` — full recipe JSON payload per row (includes cook_log, collections, favorite)
 - `user_docs` — other cookbook blobs keyed like localStorage
 
-Preview currently reuses the production database id until a separate `salt-and-page-preview` DB is created.
+| Env | Name | database_id |
+| --- | --- | --- |
+| Production | `salt-and-page` | `f7b712c7-1a50-4c97-a7e4-3c172e23b594` |
+| Preview | `salt-and-page-preview` | `a23c85b5-4b68-4380-97e8-439c9923dc53` |
 
 ## Local
 
@@ -110,25 +113,26 @@ ANTHROPIC_API_KEY=...
 
 ### 3. D1 migrate + deploy
 
-Production DB is already created:
+D1 databases (already bound in `wrangler.jsonc`):
 
-| Binding | Name | database_id |
-| --- | --- | --- |
-| `DB` | `salt-and-page` | `f7b712c7-1a50-4c97-a7e4-3c172e23b594` |
+| Binding | Env | Name | database_id |
+| --- | --- | --- | --- |
+| `DB` | Production | `salt-and-page` | `f7b712c7-1a50-4c97-a7e4-3c172e23b594` |
+| `DB` | Preview | `salt-and-page-preview` | `a23c85b5-4b68-4380-97e8-439c9923dc53` |
 
 ```bash
 npx wrangler d1 migrations apply salt-and-page --remote
+npx wrangler d1 migrations apply salt-and-page-preview --remote
 npm run deploy
 ```
-
-Optional preview DB: `npx wrangler d1 create salt-and-page-preview`, then set `preview_database_id` in `wrangler.jsonc` and apply migrations to that id.
 
 ### 4. Smoke test
 
 1. Signed out: add a recipe → still in localStorage only.
-2. Sign in → import modal if local recipes exist → Import.
-3. Confirm `GET /api/health` shows `clerkConfigured: true`, `d1Configured: true`.
-4. Second browser / incognito, sign in → recipes appear after pull.
+2. Sign in → import modal if local recipes exist → Import (or Skip — local is kept).
+3. If this device has local recipes and the account already has cloud data → choose **Use cloud** or **Keep this device & upload**.
+4. Confirm `GET /api/health` shows `clerkConfigured: true`, `d1Configured: true`.
+5. Second browser / incognito, sign in → recipes appear after pull.
 
 ## Deploy (Cloudflare)
 
