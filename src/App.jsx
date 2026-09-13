@@ -2496,8 +2496,8 @@ export default function App() {
         }
         @media (min-width: 768px) {
           .feature-chapters {
-            grid-template-columns: 1.2fr 1fr;
-            column-gap: 40px;
+            grid-template-columns: 1.25fr 0.9fr;
+            column-gap: 48px;
           }
           .feature-chapter {
             padding: 32px 0 34px;
@@ -2506,16 +2506,32 @@ export default function App() {
             grid-column: 1 / -1;
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
-            gap: 28px 36px;
+            gap: 28px 40px;
             align-items: start;
-            padding-top: 36px;
-            padding-bottom: 40px;
+            padding-top: 40px;
+            padding-bottom: 44px;
           }
           .feature-chapter--lead .feature-chapter-body {
-            max-width: 42ch;
+            max-width: 44ch;
           }
-          .feature-chapter--offset {
-            padding-left: 12px;
+          .feature-chapter--span {
+            grid-column: 1 / -1;
+            max-width: 52ch;
+            padding-top: 36px;
+            padding-bottom: 36px;
+          }
+          .feature-chapter--close {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 20px 32px;
+            align-items: baseline;
+            padding-top: 36px;
+            padding-bottom: 8px;
+            border-bottom: none;
+          }
+          .feature-chapter--close .feature-chapter-body {
+            max-width: 48ch;
           }
         }
         .feature-chapter-num {
@@ -3308,12 +3324,13 @@ const EMPTY_HOME_CHAPTERS = [
     num: '04',
     title: 'Open the pantry, ask dinner',
     body: 'Stock what’s on hand. See what you can make tonight — ranked by what matches, not what trends.',
-    offset: true
+    span: true
   },
   {
     num: '05',
     title: 'Yours, on this device',
-    body: 'Private by default. Recipes live locally to start — no account wall between you and the first page.'
+    body: 'Private by default. Recipes live locally to start — no account wall between you and the first page.',
+    close: true
   }
 ];
 
@@ -3401,7 +3418,7 @@ function EmptyCookbookHome({ onAddUrl, onAddManual }) {
           {EMPTY_HOME_CHAPTERS.map((ch) => (
             <article
               key={ch.num}
-              className={`feature-chapter${ch.lead ? ' feature-chapter--lead' : ''}${ch.offset ? ' feature-chapter--offset' : ''}`}
+              className={`feature-chapter${ch.lead ? ' feature-chapter--lead' : ''}${ch.span ? ' feature-chapter--span' : ''}${ch.close ? ' feature-chapter--close' : ''}`}
             >
               <div className="feature-chapter-num" aria-hidden="true">{ch.num}</div>
               <div className="feature-chapter-body-wrap">
