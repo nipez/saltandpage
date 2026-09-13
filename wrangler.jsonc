@@ -16,7 +16,9 @@
   "vars": {
     // Optional: "ALLOWED_ORIGINS": "https://saltandpage.example,https://www.saltandpage.example",
     "AI_RATE_LIMIT": "20",
-    "AI_RATE_LIMIT_PERIOD": "60"
+    "AI_RATE_LIMIT_PERIOD": "60",
+    // Clerk publishable key (safe to expose). Replace after creating the Clerk app.
+    "CLERK_PUBLISHABLE_KEY": "pk_test_REPLACE_ME"
   },
   // Create once, then paste ids (see README):
   //   npx wrangler kv namespace create AI_RATE_LIMIT_KV
@@ -28,8 +30,21 @@
       "id": "c62739d36b9d4df896d9a81e7a4ae0e6",
       "preview_id": "d0aea2dadd3a487d80ca5e2ed185a40d"
     }
+  ],
+  // Production D1: salt-and-page. Preview uses the same database until a separate
+  // salt-and-page-preview DB is provisioned (then swap preview_database_id).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "salt-and-page",
+      "database_id": "f7b712c7-1a50-4c97-a7e4-3c172e23b594",
+      "preview_database_id": "f7b712c7-1a50-4c97-a7e4-3c172e23b594",
+      "migrations_dir": "migrations"
+    }
   ]
   // Optional stronger edge limiter (period must be 10 or 60):
   // "ratelimits": [{ "name": "AI_RATE_LIMITER", "namespace_id": "874201", "simple": { "limit": 20, "period": 60 } }]
   // Secrets: `npx wrangler secret put ANTHROPIC_API_KEY`
+  // Secrets: `npx wrangler secret put CLERK_SECRET_KEY`
+  // Optional: `npx wrangler secret put CLERK_JWT_KEY` (PEM for networkless JWT verify)
 }

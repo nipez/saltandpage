@@ -7,8 +7,14 @@ const files = [
   'src/main.jsx',
   'src/storage.js',
   'src/ai.js',
+  'src/AuthUI.jsx',
+  'src/SyncBootstrap.jsx',
+  'src/sync-api.js',
+  'src/sync-bridge.js',
   'worker/index.js',
-  'worker/ai-guard.js'
+  'worker/ai-guard.js',
+  'worker/auth.js',
+  'worker/sync.js'
 ];
 
 for (const file of files) {
