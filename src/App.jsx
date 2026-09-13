@@ -1056,6 +1056,7 @@ function formatCardEyebrow(recipe) {
   if (raw) {
     const stripped = raw
       .replace(/^(serves|servings?|makes|yield)\s*:?\s*/i, '')
+      .replace(/\s*(servings?|people|portions?)\s*$/i, '')
       .trim();
     if (stripped) return `Serves ${stripped}`;
   }
