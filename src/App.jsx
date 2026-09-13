@@ -2260,12 +2260,15 @@ export default function App() {
         .card:hover .card-title { color: var(--tomato); }
         .card-title { transition: color 0.2s; }
         .card-media {
-          aspect-ratio: 4 / 3;
+          aspect-ratio: 3 / 2;
           overflow: hidden;
           border-bottom: 1px solid var(--line);
           position: relative;
           background: var(--paper-deep);
           flex-shrink: 0;
+        }
+        .recipe-grid-early .card-media {
+          aspect-ratio: 5 / 3;
         }
         .card-media-placeholder {
           width: 100%;
@@ -2273,7 +2276,7 @@ export default function App() {
           display: flex;
           align-items: flex-end;
           justify-content: flex-start;
-          padding: 22px 24px;
+          padding: 18px 20px;
           background:
             linear-gradient(160deg, var(--paper-deep) 0%, #e4d8c4 55%, #dccfb8 100%);
         }
@@ -2281,14 +2284,14 @@ export default function App() {
           font-family: 'Fraunces', Georgia, serif;
           font-style: italic;
           font-weight: 400;
-          font-size: clamp(40px, 5vw, 56px);
+          font-size: clamp(34px, 4.2vw, 48px);
           line-height: 1;
           color: var(--tomato);
           opacity: 0.72;
           user-select: none;
         }
         .card-body {
-          padding: 20px 22px 22px;
+          padding: 16px 18px 18px;
           position: relative;
           display: flex;
           flex-direction: column;
@@ -2298,34 +2301,175 @@ export default function App() {
         .recipe-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 20px;
+          gap: 18px;
         }
         @media (min-width: 640px) {
-          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
         }
         /* 3-col only once the shelf has enough recipes to fill it */
         @media (min-width: 1100px) {
           .recipe-grid.recipe-grid-roomy { grid-template-columns: repeat(3, minmax(0, 1fr)); }
         }
-        .recipe-grid-early {
-          max-width: 920px;
+        .shelf-layout-early {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 36px;
+          margin-bottom: 8px;
+        }
+        @media (min-width: 960px) {
+          .shelf-layout-early {
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+            gap: 40px;
+            align-items: start;
+          }
+        }
+        .shelf-aside {
+          padding: 4px 0 0;
+          border-top: 1px solid var(--line);
+        }
+        @media (min-width: 960px) {
+          .shelf-aside {
+            border-top: none;
+            border-left: 1px solid var(--line);
+            padding: 4px 0 0 28px;
+            position: sticky;
+            top: 88px;
+          }
+        }
+        .shelf-aside-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: grid;
+          gap: 18px;
+        }
+        .shelf-aside-list li {
+          padding: 0;
+        }
+        .shelf-aside-num {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-size: 15px;
+          color: var(--tomato);
+          display: block;
+          margin-bottom: 4px;
+        }
+        .shelf-aside-title {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 16px;
+          font-weight: 400;
+          letter-spacing: -0.01em;
+          color: var(--ink);
+          margin: 0 0 4px;
+          line-height: 1.25;
+        }
+        .shelf-aside-body {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.55;
+          color: var(--ink-soft);
+        }
+        .shelf-invite {
+          text-align: left;
+          background: transparent;
+          border: 1px dashed var(--line);
+          padding: 22px 20px;
+          cursor: pointer;
+          transition: border-color 0.25s, background 0.25s;
+          width: 100%;
+          height: 100%;
+          min-height: 180px;
+          font-family: inherit;
+          color: inherit;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+        }
+        .shelf-invite:hover {
+          border-color: var(--ink);
+          border-style: solid;
+          background: var(--paper-deep);
+        }
+        .shelf-invite:hover .shelf-invite-title { color: var(--tomato); }
+        .shelf-invite:focus-visible {
+          outline: 2px solid var(--tomato);
+          outline-offset: 3px;
+        }
+        .shelf-invite-kicker {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-size: 14px;
+          color: var(--tomato);
+          margin-bottom: 10px;
+        }
+        .shelf-invite-title {
+          font-family: 'Fraunces', Georgia, serif;
+          font-size: 1.35rem;
+          font-weight: 400;
+          letter-spacing: -0.015em;
+          margin: 0 0 8px;
+          transition: color 0.2s;
+        }
+        .shelf-invite-body {
+          margin: 0;
+          font-size: 13px;
+          line-height: 1.55;
+          color: var(--ink-soft);
+          max-width: 28ch;
         }
         .keep-building {
-          margin-top: 36px;
-          padding: 28px 0 8px;
+          margin-top: 40px;
+          padding: 32px 0 8px;
           border-top: 1px solid var(--line);
+        }
+        .keep-building-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+        @media (min-width: 768px) {
+          .keep-building-grid {
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+            gap: 40px;
+            align-items: end;
+          }
         }
         .keep-building-actions {
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
-          margin-top: 16px;
+          margin-top: 18px;
+        }
+        .keep-building-features {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          gap: 12px;
+        }
+        .keep-building-features li {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 12px;
+          align-items: baseline;
+          padding-top: 12px;
+          border-top: 1px solid var(--line);
+        }
+        .keep-building-features li:first-child {
+          border-top: none;
+          padding-top: 0;
+        }
+        .keep-building-features-num {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          color: var(--tomato);
+          font-size: 14px;
         }
         .list-toolbar {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          margin-bottom: 28px;
+          margin-bottom: 24px;
           padding: 14px 16px;
           background: var(--paper-deep);
           border: 1px solid var(--line);
@@ -2589,7 +2733,7 @@ export default function App() {
           color: var(--tomato);
         }
 
-        .tag-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--line); border-radius: 100px; font-size: 11px; letter-spacing: 0.05em; color: var(--ink-soft); background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+        .tag-chip { display: inline-flex; align-items: center; padding: 5px 11px; border: 1px solid var(--line); border-radius: 2px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; }
         .tag-chip:hover { border-color: var(--ink-soft); color: var(--ink); }
         .tag-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
 
@@ -3062,14 +3206,22 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
     );
   }
 
+  const isEarlyShelf = allRecipes.length > 0 && allRecipes.length < 6;
+  const showShelfInvite = isEarlyShelf && !hasActiveFilters && recipes.length % 2 === 1;
+
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
-      <header className="flex items-baseline justify-between mb-10 fadein">
-        <div>
+      <header className="flex items-end justify-between gap-6 mb-10 fadein flex-wrap">
+        <div className="min-w-0" style={{ maxWidth: '38rem' }}>
           <div className="label mb-2">№ {String(allRecipes.length).padStart(3, '0')} · Cookbook</div>
-          <h1 className="display text-4xl md:text-5xl font-light leading-none">
+          <h1 className="display text-4xl md:text-5xl font-light leading-none mb-3">
             {isPantryMode ? <em style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>What can I make?</em> : 'Every recipe, in one place'}
           </h1>
+          {!isPantryMode && (
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '42ch' }}>
+              Your shelf — extracted clean, scaled without nonsense, ready for cook mode when dinner starts.
+            </p>
+          )}
         </div>
         <button className="btn-primary" onClick={() => onAdd('url')}>
           <Plus size={16} /> New recipe
@@ -3221,12 +3373,14 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
 
       {/* Diet tags row */}
       {usedTags.length > 0 && !isPantryMode && (
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-2">
-            <Tag size={11} style={{ color: 'var(--ink-faint)' }} />
-            <span className="label">Diet</span>
+        <div className="mb-8">
+          <div className="flex items-baseline justify-between gap-4 mb-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="label">Diet</span>
+            </div>
+            <p className="text-xs" style={{ color: 'var(--ink-faint)' }}>Filter the shelf by how you cook</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--line)', paddingTop: 14 }}>
             <button
               className={`tag-chip ${!activeTag ? 'active' : ''}`}
               onClick={() => setActiveTag(null)}
@@ -3251,45 +3405,96 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
         <EmptyState hasFilters={hasActiveFilters} onAdd={() => onAdd('url')} pantryMode={isPantryMode} />
       ) : (
         <>
-          <div className={`recipe-grid stagger${allRecipes.length >= 6 ? ' recipe-grid-roomy' : ' recipe-grid-early'}`}>
-            {recipes.map(item => {
-              const recipe = item.recipe || item;
-              const matchCount = item.matchCount;
-              return (
-                <RecipeCard
-                  key={recipe.id}
-                  recipe={recipe}
-                  matchCount={matchCount}
-                  pantrySize={pantryIngredients.length}
-                  onClick={() => onOpen(recipe)}
-                  onToggleFavorite={onToggleFavorite}
-                />
-              );
-            })}
+          <div className={isEarlyShelf && !hasActiveFilters ? 'shelf-layout-early' : undefined}>
+            <div className={`recipe-grid stagger${allRecipes.length >= 6 ? ' recipe-grid-roomy' : ' recipe-grid-early'}`}>
+              {recipes.map(item => {
+                const recipe = item.recipe || item;
+                const matchCount = item.matchCount;
+                return (
+                  <RecipeCard
+                    key={recipe.id}
+                    recipe={recipe}
+                    matchCount={matchCount}
+                    pantrySize={pantryIngredients.length}
+                    onClick={() => onOpen(recipe)}
+                    onToggleFavorite={onToggleFavorite}
+                  />
+                );
+              })}
+              {showShelfInvite && (
+                <button
+                  type="button"
+                  className="shelf-invite fadein"
+                  onClick={() => onAdd('url')}
+                  aria-label="Paste a URL to add another recipe"
+                >
+                  <span className="shelf-invite-kicker">Next on the shelf</span>
+                  <span className="shelf-invite-title">Paste another URL</span>
+                  <p className="shelf-invite-body">
+                    Skip the life story. Keep the recipe — then cook, scale, or shop from here.
+                  </p>
+                </button>
+              )}
+            </div>
+
+            {isEarlyShelf && !hasActiveFilters && (
+              <aside className="shelf-aside fadein" aria-label="Inside this kitchen">
+                <div className="label mb-4">Inside this kitchen</div>
+                <ul className="shelf-aside-list">
+                  <li>
+                    <span className="shelf-aside-num">01</span>
+                    <h3 className="shelf-aside-title">Cook mode</h3>
+                    <p className="shelf-aside-body">Big type, timers, screen awake at the stove.</p>
+                  </li>
+                  <li>
+                    <span className="shelf-aside-num">02</span>
+                    <h3 className="shelf-aside-title">Kitchen-real scale</h3>
+                    <p className="shelf-aside-body">Halve or double with fractions that still cook.</p>
+                  </li>
+                  <li>
+                    <span className="shelf-aside-num">03</span>
+                    <h3 className="shelf-aside-title">Shop &amp; pantry</h3>
+                    <p className="shelf-aside-body">List from recipes. Dinner from what’s on hand.</p>
+                  </li>
+                </ul>
+              </aside>
+            )}
           </div>
 
-          {allRecipes.length > 0 && allRecipes.length < 6 && !hasActiveFilters && (
+          {isEarlyShelf && !hasActiveFilters && (
             <section className="keep-building fadein" aria-label="Keep building your cookbook">
-              <div className="label mb-2">Keep building</div>
-              <p className="display text-2xl font-light mb-1" style={{ color: 'var(--ink)' }}>
-                A cookbook grows one recipe at a time.
-              </p>
-              <p className="text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '38ch' }}>
-                Paste another URL, or write one in by hand — both land on this shelf.
-              </p>
-              <div className="keep-building-actions">
-                <button type="button" className="btn-primary" onClick={() => onAdd('url')}>
-                  <LinkIcon size={14} /> Paste a URL
-                </button>
-                <button type="button" className="btn-ghost" style={{ border: '1px solid var(--line)' }} onClick={() => onAdd('manual')}>
-                  <Edit3 size={14} /> Add by hand
-                </button>
-              </div>
-              <div className="keep-building-note">
-                <span className="keep-building-note-label">Once it’s here</span>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '48ch', margin: 0 }}>
-                  Cook mode keeps the screen awake. Scale stays kitchen-real. Shopping, pantry, and the week’s plan live a tap away — without turning this into another feed.
-                </p>
+              <div className="keep-building-grid">
+                <div>
+                  <div className="label mb-2">Keep building</div>
+                  <p className="display text-2xl md:text-3xl font-light mb-2" style={{ color: 'var(--ink)' }}>
+                    A cookbook grows one recipe at a time.
+                  </p>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)', maxWidth: '40ch' }}>
+                    Paste a URL or write one in by hand. Both land on this shelf — private on this device, ready when dinner starts.
+                  </p>
+                  <div className="keep-building-actions">
+                    <button type="button" className="btn-primary" onClick={() => onAdd('url')}>
+                      <LinkIcon size={14} /> Paste a URL
+                    </button>
+                    <button type="button" className="btn-ghost" style={{ border: '1px solid var(--line)' }} onClick={() => onAdd('manual')}>
+                      <Edit3 size={14} /> Add by hand
+                    </button>
+                  </div>
+                </div>
+                <ul className="keep-building-features" aria-label="What you can do once a recipe is saved">
+                  <li>
+                    <span className="keep-building-features-num">Cook</span>
+                    <span className="text-sm" style={{ color: 'var(--ink-soft)' }}>Open any card into cook mode — type you can read across the counter.</span>
+                  </li>
+                  <li>
+                    <span className="keep-building-features-num">Scale</span>
+                    <span className="text-sm" style={{ color: 'var(--ink-soft)' }}>Adjust servings without decimal flour. Kitchen fractions only.</span>
+                  </li>
+                  <li>
+                    <span className="keep-building-features-num">Share</span>
+                    <span className="text-sm" style={{ color: 'var(--ink-soft)' }}>Send a recipe cookbook-to-cookbook when a friend asks for it.</span>
+                  </li>
+                </ul>
               </div>
             </section>
           )}
@@ -3530,7 +3735,7 @@ function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite 
             {recipe.source_url && <LinkIcon size={12} />}
           </div>
         </div>
-        <h2 className="display card-title text-2xl leading-tight mb-3" style={{ fontWeight: 400 }}>
+        <h2 className="display card-title text-xl md:text-2xl leading-tight mb-2" style={{ fontWeight: 400 }}>
           {recipe.title}
         </h2>
         {(recipe.diet_tags || []).length > 0 && (
