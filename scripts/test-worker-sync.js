@@ -35,6 +35,14 @@ function makeDb() {
           if (sql.includes('FROM users')) {
             return users.get(statement._binds[0]) || null;
           }
+          if (sql.includes('FROM user_docs') && sql.includes('COUNT(*)')) {
+            const userId = statement._binds[0];
+            let cnt = 0;
+            for (const row of docs.values()) {
+              if (row.user_id === userId) cnt++;
+            }
+            return { cnt };
+          }
           if (sql.includes('COUNT(*)')) {
             const userId = statement._binds[0];
             let cnt = 0;
@@ -65,13 +73,15 @@ function makeDb() {
         },
         async run() {
           const binds = statement._binds;
-          if (sql.startsWith('INSERT INTO users')) {
-            users.set(binds[0], {
-              user_id: binds[0],
-              created_at: binds[1],
-              updated_at: binds[2],
-              imported_local_at: null
-            });
+          if (sql.startsWith('INSERT INTO users') || sql.includes('INSERT OR IGNORE INTO users')) {
+            if (!users.has(binds[0])) {
+              users.set(binds[0], {
+                user_id: binds[0],
+                created_at: binds[1],
+                updated_at: binds[2],
+                imported_local_at: null
+              });
+            }
           } else if (sql.includes('INSERT INTO recipes')) {
             recipes.set(`${binds[0]}::${binds[1]}`, {
               user_id: binds[0],
@@ -242,6 +252,21 @@ try {
     const cookbook = await pull.json();
     assert.equal(cookbook.recipes[0].title, 'Imported');
     assert.equal(cookbook.docs.prefs.showIngredientInfo, true);
+
+    // Second import is rejected
+    const again = await call('/api/sync/import', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://salt-and-page.nickperez.workers.dev',
+        Authorization: 'Bearer good-token',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ skip: true }),
+      env
+    });
+    assert.equal(again.status, 409);
+    const againJson = await again.json();
+    assert.equal(againJson.code, 'import_already_done');
   }
 
   // Missing Clerk secrets → 501

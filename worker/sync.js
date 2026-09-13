@@ -34,12 +34,19 @@ export async function ensureUser(db, userId) {
 
   await db
     .prepare(
-      'INSERT INTO users (user_id, created_at, updated_at, imported_local_at) VALUES (?, ?, ?, NULL)'
+      'INSERT OR IGNORE INTO users (user_id, created_at, updated_at, imported_local_at) VALUES (?, ?, ?, NULL)'
     )
     .bind(userId, now, now)
     .run();
 
-  return { user_id: userId, imported_local_at: null, created_at: now, updated_at: now };
+  const created = await db
+    .prepare('SELECT user_id, imported_local_at, created_at, updated_at FROM users WHERE user_id = ?')
+    .bind(userId)
+    .first();
+
+  return (
+    created || { user_id: userId, imported_local_at: null, created_at: now, updated_at: now }
+  );
 }
 
 export async function loadCookbook(db, userId) {
@@ -191,17 +198,23 @@ export async function saveCookbook(db, userId, body, { markImported = false, rep
 
 export async function getSyncStatus(db, userId) {
   const user = await ensureUser(db, userId);
-  const row = await db
+  const recipeRow = await db
     .prepare(
       `SELECT COUNT(*) AS cnt FROM recipes WHERE user_id = ? AND deleted_at IS NULL`
     )
     .bind(userId)
     .first();
-  const recipeCount = Number(row?.cnt) || 0;
+  const docRow = await db
+    .prepare(`SELECT COUNT(*) AS cnt FROM user_docs WHERE user_id = ?`)
+    .bind(userId)
+    .first();
+  const recipeCount = Number(recipeRow?.cnt) || 0;
+  const docCount = Number(docRow?.cnt) || 0;
   return {
     userId,
     importedLocalAt: user.imported_local_at ?? null,
-    hasCloudData: recipeCount > 0,
-    recipeCount
+    hasCloudData: recipeCount > 0 || docCount > 0,
+    recipeCount,
+    docCount
   };
 }

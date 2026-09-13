@@ -51,10 +51,26 @@ function makeDb() {
       const u = users.get(userId);
       return u || null;
     }
+    if (sql.includes('FROM recipes') && sql.includes('COUNT(*)')) {
+      const userId = binds[0];
+      let cnt = 0;
+      for (const row of recipes.values()) {
+        if (row.user_id === userId && row.deleted_at == null) cnt++;
+      }
+      return { cnt };
+    }
+    if (sql.includes('FROM user_docs') && sql.includes('COUNT(*)')) {
+      const userId = binds[0];
+      let cnt = 0;
+      for (const row of docs.values()) {
+        if (row.user_id === userId) cnt++;
+      }
+      return { cnt };
+    }
     if (sql.includes('COUNT(*)')) {
       const userId = binds[0];
       let cnt = 0;
-      for (const [k, row] of recipes) {
+      for (const row of recipes.values()) {
         if (row.user_id === userId && row.deleted_at == null) cnt++;
       }
       return { cnt };
@@ -84,14 +100,16 @@ function makeDb() {
   }
 
   function runMutate(sql, binds) {
-    if (sql.startsWith('INSERT INTO users')) {
+    if (sql.startsWith('INSERT INTO users') || sql.includes('INSERT OR IGNORE INTO users')) {
       const [userId, created, updated] = binds;
-      users.set(userId, {
-        user_id: userId,
-        created_at: created,
-        updated_at: updated,
-        imported_local_at: null
-      });
+      if (!users.has(userId)) {
+        users.set(userId, {
+          user_id: userId,
+          created_at: created,
+          updated_at: updated,
+          imported_local_at: null
+        });
+      }
       return;
     }
     if (sql.includes('INSERT INTO recipes')) {
@@ -198,6 +216,19 @@ function makeDb() {
 {
   assert.ok(DOC_KEYS.includes('shopping_list_current'));
   assert.ok(DOC_KEYS.includes('subscription_plan'));
+}
+
+{
+  const db = makeDb();
+  // Docs-only cloud still counts as hasCloudData
+  await saveCookbook(db, 'user_docs_only', {
+    recipes: [],
+    docs: { pantry_current: { items: [{ id: 'p1', name: 'salt' }] } }
+  });
+  const status = await getSyncStatus(db, 'user_docs_only');
+  assert.equal(status.hasCloudData, true);
+  assert.equal(status.recipeCount, 0);
+  assert.ok(status.docCount >= 1);
 }
 
 {

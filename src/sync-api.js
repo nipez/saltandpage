@@ -110,8 +110,15 @@ export async function readLocalCookbook() {
   return { recipes, docs };
 }
 
-/** Write a cloud cookbook snapshot into localStorage (cache). */
-export async function writeLocalCookbook({ recipes = [], docs = {} } = {}) {
+/**
+ * Write a cloud cookbook snapshot into localStorage (cache).
+ * @param {{ recipes?: object[], docs?: object }} cookbook
+ * @param {{ clearMissingDocs?: boolean }} [opts] When true, remove local doc keys absent from the snapshot.
+ */
+export async function writeLocalCookbook(
+  { recipes = [], docs = {} } = {},
+  { clearMissingDocs = true } = {}
+) {
   const { keys } = await window.storage.list('recipe:');
   for (const key of keys || []) {
     await window.storage.delete(key);
@@ -121,8 +128,11 @@ export async function writeLocalCookbook({ recipes = [], docs = {} } = {}) {
     await window.storage.set(`recipe:${recipe.id}`, JSON.stringify(recipe));
   }
   for (const docKey of DOC_KEYS) {
-    if (!(docKey in docs)) continue;
-    await window.storage.set(docKey, JSON.stringify(docs[docKey]));
+    if (docKey in docs) {
+      await window.storage.set(docKey, JSON.stringify(docs[docKey]));
+    } else if (clearMissingDocs) {
+      await window.storage.delete(docKey);
+    }
   }
 }
 

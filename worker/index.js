@@ -12,6 +12,7 @@ import {
 } from './ai-guard.js';
 import { isClerkConfigured, requireClerkUser } from './auth.js';
 import {
+  ensureUser,
   getSyncStatus,
   loadCookbook,
   saveCookbook,
@@ -110,6 +111,17 @@ async function handleSync(request, env, pathname) {
 
     if (pathname === '/api/sync/import' && request.method === 'POST') {
       const body = (await readJson(request)) || { recipes: [], docs: {} };
+      const user = await ensureUser(env.DB, userId);
+      if (user.imported_local_at) {
+        return Response.json(
+          {
+            error: 'Local import already completed for this account',
+            code: 'import_already_done',
+            importedLocalAt: user.imported_local_at
+          },
+          { status: 409, headers }
+        );
+      }
       const skip = Boolean(body.skip);
       if (skip) {
         // Mark import complete without uploading local data.
