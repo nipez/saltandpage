@@ -2260,7 +2260,7 @@ export default function App() {
         .card:hover .card-title { color: var(--tomato); }
         .card-title { transition: color 0.2s; }
         .card-media {
-          aspect-ratio: 16 / 10;
+          aspect-ratio: 4 / 3;
           overflow: hidden;
           border-bottom: 1px solid var(--line);
           position: relative;
@@ -2273,7 +2273,7 @@ export default function App() {
           display: flex;
           align-items: flex-end;
           justify-content: flex-start;
-          padding: 20px 22px;
+          padding: 22px 24px;
           background:
             linear-gradient(160deg, var(--paper-deep) 0%, #e4d8c4 55%, #dccfb8 100%);
         }
@@ -2281,14 +2281,14 @@ export default function App() {
           font-family: 'Fraunces', Georgia, serif;
           font-style: italic;
           font-weight: 400;
-          font-size: 42px;
+          font-size: clamp(40px, 5vw, 56px);
           line-height: 1;
           color: var(--tomato);
           opacity: 0.72;
           user-select: none;
         }
         .card-body {
-          padding: 22px 24px 24px;
+          padding: 20px 22px 22px;
           position: relative;
           display: flex;
           flex-direction: column;
@@ -2301,10 +2301,25 @@ export default function App() {
           gap: 20px;
         }
         @media (min-width: 640px) {
-          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
         }
-        @media (min-width: 1024px) {
+        /* 3-col only once the shelf has enough recipes to fill it */
+        @media (min-width: 1100px) {
           .recipe-grid.recipe-grid-roomy { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .recipe-grid-early {
+          max-width: 920px;
+        }
+        .keep-building {
+          margin-top: 36px;
+          padding: 28px 0 8px;
+          border-top: 1px solid var(--line);
+        }
+        .keep-building-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
         }
         .list-toolbar {
           display: flex;
@@ -3061,25 +3076,47 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
       ) : recipes.length === 0 ? (
         <EmptyState hasFilters={hasActiveFilters} onAdd={() => onAdd('url')} pantryMode={isPantryMode} />
       ) : (
-        <div className={`recipe-grid stagger${allRecipes.length >= 3 ? ' recipe-grid-roomy' : ''}`}>
-          {recipes.map(item => {
-            const recipe = item.recipe || item;
-            const matchCount = item.matchCount;
-            return (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                matchCount={matchCount}
-                pantrySize={pantryIngredients.length}
-                onClick={() => onOpen(recipe)}
-                onToggleFavorite={onToggleFavorite}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className={`recipe-grid stagger${allRecipes.length >= 6 ? ' recipe-grid-roomy' : ' recipe-grid-early'}`}>
+            {recipes.map(item => {
+              const recipe = item.recipe || item;
+              const matchCount = item.matchCount;
+              return (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  matchCount={matchCount}
+                  pantrySize={pantryIngredients.length}
+                  onClick={() => onOpen(recipe)}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              );
+            })}
+          </div>
+
+          {allRecipes.length > 0 && allRecipes.length < 6 && !hasActiveFilters && (
+            <section className="keep-building fadein" aria-label="Keep building your cookbook">
+              <div className="label mb-2">Keep building</div>
+              <p className="display text-2xl font-light mb-1" style={{ color: 'var(--ink)' }}>
+                A cookbook grows one recipe at a time.
+              </p>
+              <p className="text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '36ch' }}>
+                Paste another URL, or write one in by hand — both land on this shelf.
+              </p>
+              <div className="keep-building-actions">
+                <button type="button" className="btn-primary" onClick={() => onAdd('url')}>
+                  <LinkIcon size={14} /> Paste a URL
+                </button>
+                <button type="button" className="btn-ghost" style={{ border: '1px solid var(--line)' }} onClick={() => onAdd('manual')}>
+                  <Edit3 size={14} /> Add by hand
+                </button>
+              </div>
+            </section>
+          )}
+        </>
       )}
 
-      <footer className="mt-16 md:mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+      <footer className="mt-14 md:mt-16 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
         <p className="label text-center">Saved locally · {allRecipes.length} {allRecipes.length === 1 ? 'recipe' : 'recipes'}</p>
       </footer>
     </div>
@@ -3292,10 +3329,16 @@ function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite 
             ))}
           </div>
         )}
-        {hasMetaTimes && (
+        {hasMetaTimes ? (
           <div className="flex items-center gap-4 text-xs mt-auto pt-1" style={{ color: 'var(--ink-faint)' }}>
             {prep && <span className="flex items-center gap-1"><Clock size={11} />{prep}</span>}
             {cook && <span className="flex items-center gap-1"><ChefHat size={11} />{cook}</span>}
+          </div>
+        ) : (
+          <div className="text-xs mt-auto pt-1" style={{ color: 'var(--ink-faint)' }}>
+            {(recipe.ingredients || []).length === 1
+              ? '1 ingredient'
+              : `${(recipe.ingredients || []).length} ingredients`}
           </div>
         )}
       </div>
