@@ -2268,7 +2268,55 @@ export default function App() {
           flex-shrink: 0;
         }
         .recipe-grid-early .card-media {
-          aspect-ratio: 5 / 3;
+          aspect-ratio: 16 / 10;
+        }
+        @media (min-width: 700px) {
+          .recipe-grid.recipe-grid-early {
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .recipe-grid-early .card {
+            flex-direction: row;
+            align-items: stretch;
+            min-height: 0;
+          }
+          .recipe-grid-early .card-media {
+            width: 96px;
+            min-width: 96px;
+            max-width: 96px;
+            aspect-ratio: 1;
+            height: 96px;
+            align-self: center;
+            margin: 12px 0 12px 12px;
+            border-bottom: none;
+            border-right: 1px solid var(--line);
+          }
+          .recipe-grid-early .card-media-placeholder {
+            padding: 12px 14px;
+            align-items: flex-end;
+          }
+          .recipe-grid-early .card-media-monogram {
+            font-size: 30px;
+          }
+          .recipe-grid-early .card-body {
+            padding: 14px 18px 14px 16px;
+            justify-content: center;
+          }
+          .recipe-grid-early .card-title {
+            font-size: 1.35rem;
+            margin-bottom: 6px !important;
+          }
+          .recipe-grid-early .shelf-invite {
+            min-height: 108px;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 28px;
+            padding: 18px 22px;
+          }
+          .recipe-grid-early .shelf-invite-body {
+            max-width: 36ch;
+          }
         }
         .card-media-placeholder {
           width: 100%;
@@ -2331,9 +2379,12 @@ export default function App() {
           .shelf-aside {
             border-top: none;
             border-left: 1px solid var(--line);
-            padding: 4px 0 0 28px;
+            padding: 4px 0 8px 28px;
             position: sticky;
             top: 88px;
+            min-height: 280px;
+            display: flex;
+            flex-direction: column;
           }
         }
         .shelf-aside-list {
@@ -2341,10 +2392,16 @@ export default function App() {
           margin: 0;
           padding: 0;
           display: grid;
-          gap: 18px;
+          gap: 20px;
         }
         .shelf-aside-list li {
           padding: 0;
+          padding-bottom: 16px;
+          border-bottom: 1px solid var(--line);
+        }
+        .shelf-aside-list li:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
         }
         .shelf-aside-num {
           font-family: 'Fraunces', Georgia, serif;
@@ -2368,6 +2425,14 @@ export default function App() {
           font-size: 13px;
           line-height: 1.55;
           color: var(--ink-soft);
+        }
+        .shelf-aside-foot {
+          margin-top: auto;
+          padding-top: 24px;
+          font-size: 12px;
+          line-height: 1.55;
+          color: var(--ink-faint);
+          max-width: 28ch;
         }
         .shelf-invite {
           text-align: left;
@@ -3207,7 +3272,7 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
   }
 
   const isEarlyShelf = allRecipes.length > 0 && allRecipes.length < 6;
-  const showShelfInvite = isEarlyShelf && !hasActiveFilters && recipes.length % 2 === 1;
+  const showShelfInvite = isEarlyShelf && !hasActiveFilters;
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -3457,6 +3522,9 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
                     <p className="shelf-aside-body">List from recipes. Dinner from what’s on hand.</p>
                   </li>
                 </ul>
+                <p className="shelf-aside-foot">
+                  Open any card to cook. The feed stays elsewhere.
+                </p>
               </aside>
             )}
           </div>
