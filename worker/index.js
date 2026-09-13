@@ -10,7 +10,7 @@ import {
   isOriginAllowed,
   resolveClientOrigin
 } from './ai-guard.js';
-import { requireClerkUser } from './auth.js';
+import { isClerkConfigured, requireClerkUser } from './auth.js';
 import {
   getSyncStatus,
   loadCookbook,
@@ -33,14 +33,14 @@ export default {
         ok: true,
         service: 'salt-and-page',
         aiConfigured: Boolean(env.ANTHROPIC_API_KEY),
-        clerkConfigured: Boolean(env.CLERK_SECRET_KEY && env.CLERK_PUBLISHABLE_KEY),
+        clerkConfigured: isClerkConfigured(env),
         d1Configured: Boolean(env.DB)
       });
     }
 
     if (url.pathname === '/api/config' && request.method === 'GET') {
       return Response.json({
-        clerkPublishableKey: env.CLERK_PUBLISHABLE_KEY || null
+        clerkPublishableKey: isClerkConfigured(env) ? env.CLERK_PUBLISHABLE_KEY : null
       });
     }
 

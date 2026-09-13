@@ -210,4 +210,22 @@ function makeDb() {
   assert.ok(parties.includes('https://saltandpage.example'));
 }
 
+{
+  const { isClerkConfigured } = await import('../worker/auth.js');
+  assert.equal(
+    isClerkConfigured({
+      CLERK_SECRET_KEY: 'sk_test_REPLACE_ME',
+      CLERK_PUBLISHABLE_KEY: 'pk_test_REPLACE_ME'
+    }),
+    false
+  );
+  assert.equal(
+    isClerkConfigured({
+      CLERK_SECRET_KEY: 'sk_test_realish',
+      CLERK_PUBLISHABLE_KEY: 'pk_test_realish'
+    }),
+    true
+  );
+}
+
 console.log('ok  scripts/test-sync.js');

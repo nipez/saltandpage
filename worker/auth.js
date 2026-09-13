@@ -10,6 +10,18 @@ export function setTestAuthenticate(fn) {
   __testAuthenticate = typeof fn === 'function' ? fn : null;
 }
 
+/** True when both Clerk keys look real (not empty / REPLACE_ME placeholders). */
+export function isClerkConfigured(env = {}) {
+  return isUsableClerkKey(env.CLERK_SECRET_KEY, 'sk_') && isUsableClerkKey(env.CLERK_PUBLISHABLE_KEY, 'pk_');
+}
+
+function isUsableClerkKey(value, prefix) {
+  if (!value || typeof value !== 'string') return false;
+  if (!value.startsWith(prefix)) return false;
+  if (value.includes('REPLACE_ME')) return false;
+  return true;
+}
+
 /**
  * Authenticate an incoming request and return the Clerk user id.
  * Never trusts a client-supplied user id.
@@ -23,7 +35,7 @@ export async function requireClerkUser(request, env, corsHeaders = null) {
 
   const headers = corsHeaders ? new Headers(corsHeaders) : new Headers();
 
-  if (!env.CLERK_SECRET_KEY || !env.CLERK_PUBLISHABLE_KEY) {
+  if (!isClerkConfigured(env)) {
     return {
       error: Response.json(
         {
