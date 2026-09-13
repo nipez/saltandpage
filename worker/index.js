@@ -1,7 +1,7 @@
 // Edge API for salt & page.
-// /api/ai proxies Anthropic so the key never ships to the browser and
-// mobile clients can run URL extraction (the artifact sandbox blocked web_search).
-// Interim hardening (pre-Clerk): origin allowlist + KV-backed per-client rate limits.
+// /api/ai proxies Anthropic so the key never ships to the browser.
+// /api/sync persists cookbook state to D1 for authenticated Clerk users.
+// Hardening: origin allowlist + KV rate limits on /api/ai; Clerk JWT on /api/sync*.
 
 import {
   buildAllowedOrigins,
@@ -10,6 +10,14 @@ import {
   isOriginAllowed,
   resolveClientOrigin
 } from './ai-guard.js';
+import { isClerkConfigured, requireClerkUser } from './auth.js';
+import {
+  ensureUser,
+  getSyncStatus,
+  loadCookbook,
+  saveCookbook,
+  syncCorsHeaders
+} from './sync.js';
 
 const ANTHROPIC_MESSAGES = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -25,7 +33,15 @@ export default {
       return Response.json({
         ok: true,
         service: 'salt-and-page',
-        aiConfigured: Boolean(env.ANTHROPIC_API_KEY)
+        aiConfigured: Boolean(env.ANTHROPIC_API_KEY),
+        clerkConfigured: isClerkConfigured(env),
+        d1Configured: Boolean(env.DB)
+      });
+    }
+
+    if (url.pathname === '/api/config' && request.method === 'GET') {
+      return Response.json({
+        clerkPublishableKey: isClerkConfigured(env) ? env.CLERK_PUBLISHABLE_KEY : null
       });
     }
 
@@ -33,9 +49,113 @@ export default {
       return handleAi(request, env);
     }
 
+    if (url.pathname === '/api/sync' || url.pathname === '/api/sync/import' || url.pathname === '/api/sync/status') {
+      return handleSync(request, env, url.pathname);
+    }
+
     return new Response('Not found', { status: 404 });
   }
 };
+
+async function handleSync(request, env, pathname) {
+  const allowedOrigins = buildAllowedOrigins(request.url, env);
+  const clientOrigin = resolveClientOrigin(request);
+  // Same-origin SPA may omit Origin; still allow when Origin is absent for GET/PUT from the Worker host.
+  const originOk =
+    !clientOrigin || isOriginAllowed(clientOrigin, allowedOrigins);
+  if (!originOk) {
+    return Response.json(
+      { error: 'Forbidden origin', code: 'origin_not_allowed' },
+      { status: 403 }
+    );
+  }
+
+  const headers = syncCorsHeaders(clientOrigin || new URL(request.url).origin);
+
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers });
+  }
+
+  if (!env.DB) {
+    return Response.json(
+      { error: 'D1 is not configured', code: 'd1_not_configured' },
+      { status: 501, headers }
+    );
+  }
+
+  const auth = await requireClerkUser(request, env, headers);
+  if (auth.error) return auth.error;
+  const { userId } = auth;
+
+  try {
+    if (pathname === '/api/sync/status' && request.method === 'GET') {
+      const status = await getSyncStatus(env.DB, userId);
+      return Response.json(status, { headers });
+    }
+
+    if (pathname === '/api/sync' && request.method === 'GET') {
+      const cookbook = await loadCookbook(env.DB, userId);
+      return Response.json(cookbook, { headers });
+    }
+
+    if (pathname === '/api/sync' && request.method === 'PUT') {
+      const body = await readJson(request);
+      if (!body) {
+        return Response.json({ error: 'JSON body required' }, { status: 400, headers });
+      }
+      const cookbook = await saveCookbook(env.DB, userId, body, {
+        replaceRecipes: Boolean(body.replaceRecipes)
+      });
+      return Response.json(cookbook, { headers });
+    }
+
+    if (pathname === '/api/sync/import' && request.method === 'POST') {
+      const body = (await readJson(request)) || { recipes: [], docs: {} };
+      const user = await ensureUser(env.DB, userId);
+      if (user.imported_local_at) {
+        return Response.json(
+          {
+            error: 'Local import already completed for this account',
+            code: 'import_already_done',
+            importedLocalAt: user.imported_local_at
+          },
+          { status: 409, headers }
+        );
+      }
+      const skip = Boolean(body.skip);
+      if (skip) {
+        // Mark import complete without uploading local data.
+        const cookbook = await saveCookbook(env.DB, userId, { recipes: [], docs: {} }, {
+          markImported: true
+        });
+        return Response.json({ skipped: true, ...cookbook }, { headers });
+      }
+      const cookbook = await saveCookbook(env.DB, userId, body, {
+        markImported: true,
+        replaceRecipes: true
+      });
+      return Response.json({ imported: true, ...cookbook }, { headers });
+    }
+
+    return Response.json({ error: 'Method not allowed' }, { status: 405, headers });
+  } catch (err) {
+    console.error('sync handler error', err);
+    return Response.json(
+      { error: 'Sync failed', code: 'sync_failed' },
+      { status: 500, headers }
+    );
+  }
+}
+
+async function readJson(request) {
+  try {
+    const text = await request.text();
+    if (!text) return null;
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 async function handleAi(request, env) {
   const allowedOrigins = buildAllowedOrigins(request.url, env);

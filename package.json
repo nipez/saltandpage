@@ -10,10 +10,12 @@
     "preview": "npm run build && vite preview",
     "deploy": "wrangler deploy",
     "check": "npm run validate && vite build && wrangler deploy --dry-run",
-    "validate": "node scripts/validate.js && node scripts/test-ai-client.js && node scripts/test-ai-guard.js && node scripts/test-worker-ai.js",
+    "validate": "node scripts/validate.js && node scripts/test-ai-client.js && node scripts/test-ai-guard.js && node scripts/test-worker-ai.js && node scripts/test-sync.js && node scripts/test-worker-sync.js",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@clerk/backend": "^3.17.2",
+    "@clerk/clerk-react": "^5.61.9",
     "lucide-react": "^1.39.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

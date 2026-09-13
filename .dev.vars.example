@@ -1,7 +1,17 @@
 # Copy to .dev.vars (never commit the real file)
 ANTHROPIC_API_KEY=
 
-# Optional: comma-separated extra Origins allowed to call POST /api/ai.
+# Clerk — from Dashboard → API Keys
+# Publishable key is also set as wrangler `vars.CLERK_PUBLISHABLE_KEY` (and optionally VITE_ for local Vite).
+CLERK_PUBLISHABLE_KEY=pk_test_REPLACE_ME
+CLERK_SECRET_KEY=sk_test_REPLACE_ME
+# Optional: PEM public key for networkless JWT verify on Workers
+# CLERK_JWT_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+
+# Vite client (optional if /api/config serves CLERK_PUBLISHABLE_KEY)
+# VITE_CLERK_PUBLISHABLE_KEY=pk_test_REPLACE_ME
+
+# Optional: comma-separated extra Origins allowed to call POST /api/ai (and Clerk azp parties).
 # Localhost Vite/wrangler and the Worker host are always allowed without this.
 # Example:
 # ALLOWED_ORIGINS=https://saltandpage.example,https://www.saltandpage.example

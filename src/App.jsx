@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Link as LinkIcon, X, Trash2, Edit3, Share2, Clock, Users, ChefHat, Loader2, Check, AlertCircle, BookOpen, ArrowLeft, Copy, Download, Scale, RotateCcw, Camera, ImageOff, Calendar, MessageSquarePlus, ShoppingBasket, History, Maximize2, Minimize2, ChevronLeft, ChevronRight, Refrigerator, Sparkles, Flame, CalendarDays, Replace, Printer, FolderOpen, Tag, Star, Timer, Pause, Play, ThumbsUp, ThumbsDown, Image as ImageIcon, Settings as SettingsIcon, Mic, MicOff, Activity, Square, CheckSquare, Wand2, Send, Smartphone, Info, ExternalLink } from 'lucide-react';
 import { ANTHROPIC_MODEL, postAi } from './ai.js';
+import { NavAuthControls, SettingsAuthSection } from './AuthUI.jsx';
+import { scheduleCloudPush } from './sync-bridge.js';
 
 const DIET_TAGS = [
   'keto', 'low-carb', 'vegetarian', 'vegan', 'gluten-free',
@@ -1807,9 +1809,11 @@ const storage = {
   async save(recipe) {
     const key = `${STORAGE_PREFIX}${recipe.id}`;
     await window.storage.set(key, JSON.stringify(recipe));
+    scheduleCloudPush();
   },
   async remove(id) {
     await window.storage.delete(`${STORAGE_PREFIX}${id}`);
+    scheduleCloudPush();
   },
   async getShoppingList() {
     try {
@@ -1821,6 +1825,7 @@ const storage = {
   },
   async saveShoppingList(list) {
     await window.storage.set(SHOPPING_KEY, JSON.stringify(list));
+    scheduleCloudPush();
   },
   async getMealPlan() {
     try {
@@ -1832,6 +1837,7 @@ const storage = {
   },
   async saveMealPlan(plan) {
     await window.storage.set(MEAL_PLAN_KEY, JSON.stringify(plan));
+    scheduleCloudPush();
   },
   async getPlan() {
     try {
@@ -1850,6 +1856,7 @@ const storage = {
   },
   async savePlan(plan) {
     await window.storage.set(PLAN_KEY, JSON.stringify(plan));
+    scheduleCloudPush();
   },
   async getPantry() {
     try {
@@ -1861,6 +1868,7 @@ const storage = {
   },
   async savePantry(p) {
     await window.storage.set(PANTRY_KEY, JSON.stringify(p));
+    scheduleCloudPush();
   },
   async getOnboarded() {
     try {
@@ -1870,6 +1878,7 @@ const storage = {
   },
   async setOnboarded(val) {
     await window.storage.set(ONBOARDED_KEY, JSON.stringify(val));
+    scheduleCloudPush();
   },
   async getUserSubs() {
     try {
@@ -1881,6 +1890,7 @@ const storage = {
   },
   async saveUserSubs(subs) {
     await window.storage.set(USER_SUBS_KEY, JSON.stringify(subs));
+    scheduleCloudPush();
   },
   async getPrefs() {
     try {
@@ -1893,8 +1903,45 @@ const storage = {
   },
   async savePrefs(prefs) {
     await window.storage.set(PREFS_KEY, JSON.stringify(prefs));
+    scheduleCloudPush();
   }
 };
+
+/** Reload React state from localStorage after cloud hydrate. */
+async function loadAllLocalState(setters) {
+  const {
+    setRecipes,
+    setLoading,
+    setShoppingList,
+    setMealPlan,
+    setPantry,
+    setUserSubs,
+    setPrefs,
+    setPlan,
+    setShowOnboarding
+  } = setters;
+  const list = await storage.list();
+  setRecipes(list);
+  setLoading(false);
+  setShoppingList(await storage.getShoppingList());
+  setMealPlan(await storage.getMealPlan());
+  setPantry(await storage.getPantry());
+  setUserSubs(await storage.getUserSubs());
+  setPrefs(await storage.getPrefs());
+  const p = await storage.getPlan();
+  const cur = getCurrentMonth();
+  if (p.usage?.month !== cur) {
+    const reset = { ...p, usage: { month: cur } };
+    // Persist month rollover without triggering cloud push (avoid loop on hydrate).
+    await window.storage.set(PLAN_KEY, JSON.stringify(reset));
+    setPlan(reset);
+  } else {
+    setPlan(p);
+  }
+  const onboarded = await storage.getOnboarded();
+  if (!onboarded && list.length === 0) setShowOnboarding(true);
+  else setShowOnboarding(false);
+}
 
 // ---------- AI extraction ----------
 async function extractRecipeFromUrl(url) {
@@ -1973,29 +2020,23 @@ export default function App() {
   const [addInitialMode, setAddInitialMode] = useState('url');
 
   useEffect(() => {
-    storage.list().then(r => { setRecipes(r); setLoading(false); });
-    storage.getShoppingList().then(setShoppingList);
-    storage.getMealPlan().then(setMealPlan);
-    storage.getPantry().then(setPantry);
-    storage.getUserSubs().then(setUserSubs);
-    storage.getPrefs().then(setPrefs);
-    storage.getPlan().then(p => {
-      const cur = getCurrentMonth();
-      if (p.usage?.month !== cur) {
-        const reset = { ...p, usage: { month: cur } };
-        storage.savePlan(reset);
-        setPlan(reset);
-      } else {
-        setPlan(p);
-      }
-    });
-    // Show onboarding to first-time users with no recipes
-    storage.getOnboarded().then(async (onboarded) => {
-      if (!onboarded) {
-        const list = await storage.list();
-        if (list.length === 0) setShowOnboarding(true);
-      }
-    });
+    const setters = {
+      setRecipes,
+      setLoading,
+      setShoppingList,
+      setMealPlan,
+      setPantry,
+      setUserSubs,
+      setPrefs,
+      setPlan,
+      setShowOnboarding
+    };
+    loadAllLocalState(setters);
+    const onHydrated = () => {
+      loadAllLocalState(setters);
+    };
+    window.addEventListener('saltandpage:cookbook-hydrated', onHydrated);
+    return () => window.removeEventListener('saltandpage:cookbook-hydrated', onHydrated);
   }, []);
 
   const dismissOnboarding = async () => {
@@ -3183,6 +3224,7 @@ function TopNav({ view, setView, recipeCount, shoppingCount, journalCount, planC
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <NavAuthControls />
           {plan && (
             <button
               onClick={() => setView('settings')}
@@ -7351,8 +7393,12 @@ function SettingsView({ plan, recipeCount, onChangeTier, onClose, onShowUpgrade,
       <div className="label mb-3">Account</div>
       <h1 className="display text-5xl md:text-6xl font-light leading-none mb-2">Your plan</h1>
 
+      <div className="mt-10">
+        <SettingsAuthSection />
+      </div>
+
       {/* Current plan card */}
-      <div className="mt-10 mb-12" style={{ border: '1px solid var(--line)', padding: 32, background: tier !== 'free' ? 'var(--paper-deep)' : 'var(--paper)' }}>
+      <div className="mt-2 mb-12" style={{ border: '1px solid var(--line)', padding: 32, background: tier !== 'free' ? 'var(--paper-deep)' : 'var(--paper)' }}>
         <div className="flex items-baseline justify-between flex-wrap gap-4 mb-2">
           <div className="flex items-baseline gap-3">
             {tier !== 'free' && <Sparkles size={20} style={{ color: 'var(--tomato)' }} />}
