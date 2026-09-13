@@ -2278,25 +2278,28 @@ export default function App() {
           .recipe-grid-early .card {
             flex-direction: row;
             align-items: stretch;
-            min-height: 108px;
+            min-height: 0;
           }
           .recipe-grid-early .card-media {
-            width: 112px;
-            aspect-ratio: auto;
-            height: auto;
-            align-self: stretch;
+            width: 96px;
+            min-width: 96px;
+            max-width: 96px;
+            aspect-ratio: 1;
+            height: 96px;
+            align-self: center;
+            margin: 12px 0 12px 12px;
             border-bottom: none;
             border-right: 1px solid var(--line);
           }
           .recipe-grid-early .card-media-placeholder {
-            padding: 14px 16px;
+            padding: 12px 14px;
             align-items: flex-end;
           }
           .recipe-grid-early .card-media-monogram {
-            font-size: 34px;
+            font-size: 30px;
           }
           .recipe-grid-early .card-body {
-            padding: 14px 18px;
+            padding: 14px 18px 14px 16px;
             justify-content: center;
           }
           .recipe-grid-early .card-title {
