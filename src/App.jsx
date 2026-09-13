@@ -1035,6 +1035,36 @@ function formatStepDuration(min) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+/** Normalize freeform time strings for card metadata ("20 mins" → "20 min"). */
+function formatRecipeTime(value) {
+  if (!value) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  return s
+    .replace(/\bminutes?\b/gi, 'min')
+    .replace(/\bmins\b/gi, 'min')
+    .replace(/\bhours?\b/gi, 'hr')
+    .replace(/\bhrs\b/gi, 'hr');
+}
+
+/**
+ * Consistent card eyebrow: prefer Serves N, else ingredient count with correct plural.
+ * Strips redundant "serves/servings/makes" prefixes from stored servings strings.
+ */
+function formatCardEyebrow(recipe) {
+  const raw = (recipe.servings || '').trim();
+  if (raw) {
+    const stripped = raw
+      .replace(/^(serves|servings?|makes|yield)\s*:?\s*/i, '')
+      .replace(/\s*(servings?|people|portions?)\s*$/i, '')
+      .trim();
+    if (stripped) return `Serves ${stripped}`;
+  }
+  const n = (recipe.ingredients || []).length;
+  if (n <= 0) return 'Recipe';
+  return n === 1 ? '1 ingredient' : `${n} ingredients`;
+}
+
 // ---------- Ingredient ↔ step matching ----------
 // Connects ingredients to steps so cook mode can:
 //   1. Highlight which ingredients are used in the current step (sidebar)
@@ -1940,6 +1970,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userSubs, setUserSubs] = useState({ items: [] });
   const [prefs, setPrefs] = useState({ showIngredientInfo: true });
+  const [addInitialMode, setAddInitialMode] = useState('url');
 
   useEffect(() => {
     storage.list().then(r => { setRecipes(r); setLoading(false); });
@@ -2224,10 +2255,165 @@ export default function App() {
         .input:focus { outline: none; border-bottom-color: var(--ink); }
         .input::placeholder { color: var(--ink-faint); }
 
-        .card { background: var(--paper); border: 1px solid var(--line); padding: 28px; transition: all 0.25s; cursor: pointer; position: relative; }
+        .card { background: var(--paper); border: 1px solid var(--line); padding: 28px; transition: all 0.25s; cursor: pointer; position: relative; display: flex; flex-direction: column; height: 100%; }
         .card:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 12px 30px -10px rgba(31, 24, 16, 0.15); }
         .card:hover .card-title { color: var(--tomato); }
         .card-title { transition: color 0.2s; }
+        .card-media {
+          aspect-ratio: 4 / 3;
+          overflow: hidden;
+          border-bottom: 1px solid var(--line);
+          position: relative;
+          background: var(--paper-deep);
+          flex-shrink: 0;
+        }
+        .card-media-placeholder {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: flex-end;
+          justify-content: flex-start;
+          padding: 22px 24px;
+          background:
+            linear-gradient(160deg, var(--paper-deep) 0%, #e4d8c4 55%, #dccfb8 100%);
+        }
+        .card-media-monogram {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: clamp(40px, 5vw, 56px);
+          line-height: 1;
+          color: var(--tomato);
+          opacity: 0.72;
+          user-select: none;
+        }
+        .card-body {
+          padding: 20px 22px 22px;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-height: 0;
+        }
+        .recipe-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        @media (min-width: 640px) {
+          .recipe-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+        }
+        /* 3-col only once the shelf has enough recipes to fill it */
+        @media (min-width: 1100px) {
+          .recipe-grid.recipe-grid-roomy { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+        .recipe-grid-early {
+          max-width: 920px;
+        }
+        .keep-building {
+          margin-top: 36px;
+          padding: 28px 0 8px;
+          border-top: 1px solid var(--line);
+        }
+        .keep-building-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
+        }
+        .list-toolbar {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-bottom: 28px;
+          padding: 14px 16px;
+          background: var(--paper-deep);
+          border: 1px solid var(--line);
+        }
+        @media (min-width: 768px) {
+          .list-toolbar {
+            flex-direction: row;
+            align-items: center;
+            gap: 16px;
+          }
+        }
+        .list-toolbar .input {
+          border-bottom-color: transparent;
+          padding: 6px 0;
+        }
+        .list-toolbar .input:focus {
+          border-bottom-color: var(--ink);
+        }
+
+        /* Empty cookbook — elevated path cards (interaction containers, not decorative cards) */
+        .path-card {
+          text-align: left;
+          background: var(--paper);
+          border: 1px solid var(--line);
+          padding: 28px 26px;
+          cursor: pointer;
+          transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s, background 0.25s;
+          width: 100%;
+          font-family: inherit;
+          color: inherit;
+          display: block;
+        }
+        .path-card:hover {
+          border-color: var(--ink);
+          background: var(--paper-deep);
+          transform: translateY(-2px);
+          box-shadow: 0 14px 32px -14px rgba(31, 24, 16, 0.18);
+        }
+        .path-card:hover .path-card-title { color: var(--tomato); }
+        .path-card:focus-visible {
+          outline: 2px solid var(--tomato);
+          outline-offset: 3px;
+        }
+        .path-card-title { transition: color 0.2s; }
+        .path-card-arrow {
+          color: var(--ink-faint);
+          transition: color 0.2s, transform 0.2s;
+        }
+        .path-card:hover .path-card-arrow {
+          color: var(--tomato);
+          transform: translateX(3px);
+        }
+
+        .empty-home-hero {
+          position: relative;
+        }
+        .empty-home-hero::after {
+          content: '';
+          display: block;
+          width: 48px;
+          height: 1px;
+          background: var(--tomato);
+          margin-top: 28px;
+          opacity: 0.85;
+        }
+
+        .how-strip {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+          border-top: 1px solid var(--line);
+          padding-top: 28px;
+        }
+        @media (min-width: 640px) {
+          .how-strip {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+          }
+        }
+        .how-step-num {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: 22px;
+          color: var(--tomato);
+          line-height: 1;
+          margin-bottom: 10px;
+        }
 
         .tag-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--line); border-radius: 100px; font-size: 11px; letter-spacing: 0.05em; color: var(--ink-soft); background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; }
         .tag-chip:hover { border-color: var(--ink-soft); color: var(--ink); }
@@ -2249,9 +2435,9 @@ export default function App() {
         .checkbox.checked { background: var(--ink); border-color: var(--ink); color: var(--paper); }
         .checkbox:hover { border-color: var(--ink-soft); }
 
-        @keyframes fadein { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .fadein { animation: fadein 0.4s ease-out; }
-        .stagger > * { animation: fadein 0.5s ease-out backwards; }
+        @keyframes fadein { from { opacity: 0.55; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .fadein { animation: fadein 0.35s ease-out; }
+        .stagger > * { animation: fadein 0.4s ease-out backwards; }
         .stagger > *:nth-child(1) { animation-delay: 0.05s; }
         .stagger > *:nth-child(2) { animation-delay: 0.1s; }
         .stagger > *:nth-child(3) { animation-delay: 0.15s; }
@@ -2363,7 +2549,7 @@ export default function App() {
               onAddPantry={addPantryItem}
               onRemovePantry={removePantryItem}
               onClearPantry={clearPantry}
-              onAdd={() => setView('add')}
+              onAdd={(mode = 'url') => { setAddInitialMode(mode); setView('add'); }}
               onOpen={(r) => { setActiveRecipe(r.recipe || r); setView('detail'); }}
               onToggleFavorite={async (recipe) => {
                 const updated = { ...recipe, favorite: !recipe.favorite, updated_at: Date.now() };
@@ -2432,6 +2618,8 @@ export default function App() {
 
           {view === 'add' && (
             <AddView
+              key={addInitialMode}
+              initialMode={addInitialMode}
               plan={plan}
               recipeCount={recipes.length}
               requireFeature={requireFeature}
@@ -2441,8 +2629,8 @@ export default function App() {
                 const r = recipes.find(x => x.id === id);
                 if (r) { setActiveRecipe(r); setView('detail'); }
               }}
-              onCancel={() => setView('cookbook')}
-              onSaved={async () => { await refresh(); setView('cookbook'); }}
+              onCancel={() => { setAddInitialMode('url'); setView('cookbook'); }}
+              onSaved={async () => { setAddInitialMode('url'); await refresh(); setView('cookbook'); }}
             />
           )}
           {view === 'detail' && activeRecipe && (
@@ -2575,7 +2763,7 @@ export default function App() {
         {showOnboarding && (
           <OnboardingModal
             onDismiss={dismissOnboarding}
-            onAddRecipe={() => { dismissOnboarding(); setView('add'); }}
+            onAddRecipe={() => { dismissOnboarding(); setAddInitialMode('url'); setView('add'); }}
           />
         )}
       </div>
@@ -2684,6 +2872,21 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
 
   const isPantryMode = pantryIngredients.length > 0 || (pantry?.items?.length || 0) > 0;
   const persistentCount = pantry?.items?.length || 0;
+  const isEmptyCookbook = !loading && allRecipes.length === 0;
+  const hasActiveFilters = !!search || !!activeTag || !!activeCollection || isPantryMode || favoritesOnly;
+
+  // Zero-recipe home: hide search / pantry / filter scaffolding so the page
+  // doesn't read as an unfinished list shell over a void.
+  if (isEmptyCookbook) {
+    return (
+      <div className="max-w-4xl mx-auto px-8 py-12 md:py-20">
+        <EmptyCookbookHome onAddUrl={() => onAdd('url')} onAddManual={() => onAdd('manual')} />
+        <footer className="mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+          <p className="label text-center">Saved locally · ready when you are</p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -2694,38 +2897,45 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
             {isPantryMode ? <em style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>What can I make?</em> : 'Every recipe, in one place'}
           </h1>
         </div>
-        <button className="btn-primary" onClick={onAdd}>
+        <button className="btn-primary" onClick={() => onAdd('url')}>
           <Plus size={16} /> New recipe
         </button>
       </header>
 
-      <div className="mb-6 flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-3 flex-1 max-w-md">
-          <Search size={16} style={{ color: 'var(--ink-faint)' }} />
+      <div className="list-toolbar">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <Search size={16} style={{ color: 'var(--ink-soft)', flexShrink: 0 }} />
           <input
             className="input"
-            placeholder="Search anything — title, ingredient, step…"
+            placeholder="Search titles, ingredients, steps…"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            aria-label="Search cookbook"
           />
         </div>
-        {favoritesCount > 0 && (
+        <div className="flex items-center gap-1 flex-wrap">
+          {favoritesCount > 0 && (
+            <button
+              className="btn-ghost"
+              onClick={() => setFavoritesOnly(!favoritesOnly)}
+              style={{ color: favoritesOnly ? 'var(--tomato)' : 'var(--ink-soft)' }}
+            >
+              <Star size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
+              Favorites {favoritesOnly && `(${favoritesCount})`}
+            </button>
+          )}
           <button
             className="btn-ghost"
-            onClick={() => setFavoritesOnly(!favoritesOnly)}
-            style={{ color: favoritesOnly ? 'var(--tomato)' : 'var(--ink-soft)' }}
+            onClick={() => setPantryOpen(!pantryOpen)}
+            style={{
+              color: pantryOpen || isPantryMode ? 'var(--ink)' : 'var(--ink-soft)',
+              background: pantryOpen || isPantryMode ? 'var(--paper)' : 'transparent',
+              border: '1px solid var(--line)'
+            }}
           >
-            <Star size={14} fill={favoritesOnly ? 'currentColor' : 'none'} />
-            Favorites {favoritesOnly && `(${favoritesCount})`}
+            <Refrigerator size={14} /> Pantry {persistentCount > 0 && <span style={{ color: 'var(--tomato)', marginLeft: 2 }}>· {persistentCount}</span>}
           </button>
-        )}
-        <button
-          className="btn-ghost"
-          onClick={() => setPantryOpen(!pantryOpen)}
-          style={{ color: pantryOpen || isPantryMode ? 'var(--ink)' : 'var(--ink-soft)' }}
-        >
-          <Refrigerator size={14} /> Pantry {persistentCount > 0 && <span style={{ color: 'var(--tomato)', marginLeft: 2 }}>· {persistentCount}</span>}
-        </button>
+        </div>
       </div>
 
       {pantryOpen && (
@@ -2859,34 +3069,163 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
       )}
 
       {loading ? (
-        <div className="text-center py-24" style={{ color: 'var(--ink-faint)' }}>
+        <div className="text-center py-20" style={{ color: 'var(--ink-faint)' }}>
           <Loader2 className="spinning mx-auto mb-3" size={20} />
           <p className="label">Loading the cookbook</p>
         </div>
       ) : recipes.length === 0 ? (
-        <EmptyState hasFilters={!!search || !!activeTag || !!activeCollection || isPantryMode} onAdd={onAdd} pantryMode={isPantryMode} />
+        <EmptyState hasFilters={hasActiveFilters} onAdd={() => onAdd('url')} pantryMode={isPantryMode} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
-          {recipes.map(item => {
-            const recipe = item.recipe || item;
-            const matchCount = item.matchCount;
-            return (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                matchCount={matchCount}
-                pantrySize={pantryIngredients.length}
-                onClick={() => onOpen(recipe)}
-                onToggleFavorite={onToggleFavorite}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className={`recipe-grid stagger${allRecipes.length >= 6 ? ' recipe-grid-roomy' : ' recipe-grid-early'}`}>
+            {recipes.map(item => {
+              const recipe = item.recipe || item;
+              const matchCount = item.matchCount;
+              return (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  matchCount={matchCount}
+                  pantrySize={pantryIngredients.length}
+                  onClick={() => onOpen(recipe)}
+                  onToggleFavorite={onToggleFavorite}
+                />
+              );
+            })}
+          </div>
+
+          {allRecipes.length > 0 && allRecipes.length < 6 && !hasActiveFilters && (
+            <section className="keep-building fadein" aria-label="Keep building your cookbook">
+              <div className="label mb-2">Keep building</div>
+              <p className="display text-2xl font-light mb-1" style={{ color: 'var(--ink)' }}>
+                A cookbook grows one recipe at a time.
+              </p>
+              <p className="text-sm" style={{ color: 'var(--ink-soft)', maxWidth: '36ch' }}>
+                Paste another URL, or write one in by hand — both land on this shelf.
+              </p>
+              <div className="keep-building-actions">
+                <button type="button" className="btn-primary" onClick={() => onAdd('url')}>
+                  <LinkIcon size={14} /> Paste a URL
+                </button>
+                <button type="button" className="btn-ghost" style={{ border: '1px solid var(--line)' }} onClick={() => onAdd('manual')}>
+                  <Edit3 size={14} /> Add by hand
+                </button>
+              </div>
+            </section>
+          )}
+        </>
       )}
 
-      <footer className="mt-24 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+      <footer className="mt-14 md:mt-16 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
         <p className="label text-center">Saved locally · {allRecipes.length} {allRecipes.length === 1 ? 'recipe' : 'recipes'}</p>
       </footer>
+    </div>
+  );
+}
+
+function EmptyCookbookHome({ onAddUrl, onAddManual }) {
+  return (
+    <div className="fadein">
+      <header className="empty-home-hero mb-12 md:mb-14 max-w-2xl">
+        <div className="label mb-5">Your cookbook</div>
+        <h1
+          className="leading-none mb-6"
+          style={{
+            fontFamily: 'Fraunces, Georgia, serif',
+            fontWeight: 400,
+            fontSize: 'clamp(2.75rem, 7vw, 4.25rem)',
+            letterSpacing: '-0.02em',
+            color: 'var(--ink)'
+          }}
+        >
+          salt <span style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>&amp;</span> page
+          <span style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>.</span>
+        </h1>
+        <p
+          className="display text-xl md:text-2xl font-light leading-snug"
+          style={{ color: 'var(--ink-soft)', maxWidth: '28ch' }}
+        >
+          The cookbook for people who actually cook,{' '}
+          <em style={{ color: 'var(--ink)', fontStyle: 'italic', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400 }}>
+            not just save
+          </em>
+          .
+        </p>
+      </header>
+
+      <section className="mb-14 md:mb-16" aria-label="Start your cookbook">
+        <div className="label mb-4">Begin with</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 stagger">
+          <button type="button" className="path-card" onClick={onAddUrl}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <span
+                style={{
+                  width: 40, height: 40,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid var(--line)', color: 'var(--tomato)'
+                }}
+              >
+                <LinkIcon size={18} />
+              </span>
+              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            </div>
+            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
+              Paste a URL
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              From any food blog. We skip the life story and pull just the recipe.
+            </p>
+          </button>
+
+          <button type="button" className="path-card" onClick={onAddManual}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <span
+                style={{
+                  width: 40, height: 40,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid var(--line)', color: 'var(--tomato)'
+                }}
+              >
+                <Edit3 size={18} />
+              </span>
+              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            </div>
+            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
+              Add by hand
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Grandma’s card, a napkin note, or anything that isn’t online.
+            </p>
+          </button>
+        </div>
+      </section>
+
+      <section aria-label="How it works">
+        <div className="label mb-5">How it works</div>
+        <div className="how-strip">
+          <div>
+            <div className="how-step-num">01</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Import</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Paste a link or write it in. One clean recipe card.
+            </p>
+          </div>
+          <div>
+            <div className="how-step-num">02</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Cook</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Big type, timers, and a screen that stays awake.
+            </p>
+          </div>
+          <div>
+            <div className="how-step-num">03</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 500 }}>Saves locally</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Yours, on this device — no account required to start.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -2909,80 +3248,69 @@ function EmptyState({ hasFilters, onAdd, pantryMode }) {
       </div>
     );
   }
+  // Fallback if ListView empty-home gate is bypassed
   return (
-    <div className="text-center py-24 max-w-md mx-auto">
-      <BookOpen className="mx-auto mb-6" size={32} style={{ color: 'var(--ink-faint)' }} />
-      <p className="display text-3xl mb-3 italic" style={{ color: 'var(--ink-soft)' }}>An empty cookbook.</p>
-      <p className="mb-8" style={{ color: 'var(--ink-faint)' }}>
-        Paste a URL from a food blog, or add one by hand. Your recipes save automatically.
-      </p>
-      <button className="btn-primary" onClick={onAdd}>
-        <Plus size={16} /> Add your first recipe
-      </button>
-    </div>
+    <EmptyCookbookHome onAddUrl={onAdd} onAddManual={onAdd} />
   );
 }
 
 function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite }) {
+  const [imgFailed, setImgFailed] = useState(false);
+  const showPhoto = !!(recipe.hero_image && !imgFailed);
+  const eyebrow = matchCount != null && !showPhoto
+    ? `${matchCount}/${pantrySize} match`
+    : formatCardEyebrow(recipe);
+  const prep = formatRecipeTime(recipe.prep_time);
+  const cook = formatRecipeTime(recipe.cook_time);
+  const monogram = (recipe.title || '?').trim().charAt(0).toUpperCase() || '·';
+  const hasMetaTimes = !!(prep || cook);
+
   return (
     <article className="card" onClick={onClick} style={{ padding: 0, overflow: 'hidden' }}>
-      {recipe.hero_image && (
-        <div style={{ aspectRatio: '16 / 10', overflow: 'hidden', borderBottom: '1px solid var(--line)', position: 'relative' }}>
+      <div className="card-media">
+        {!showPhoto && (
+          <div className="card-media-placeholder" aria-hidden="true">
+            <span className="card-media-monogram">{monogram}</span>
+          </div>
+        )}
+        {showPhoto && (
           <img
             src={recipe.hero_image}
-            alt={recipe.title}
+            alt=""
             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.04)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-            onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+            onError={() => setImgFailed(true)}
           />
-          {matchCount != null && (
-            <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--ink)', color: 'var(--paper)', padding: '4px 10px', fontSize: 11, letterSpacing: '0.05em', borderRadius: 2 }}>
-              {matchCount}/{pantrySize} match
-            </div>
-          )}
-          {onToggleFavorite && (
-            <button
-              onClick={e => { e.stopPropagation(); onToggleFavorite(recipe); }}
-              style={{
-                position: 'absolute', top: 12, right: 12,
-                background: recipe.favorite ? 'var(--tomato)' : 'rgba(31, 24, 16, 0.6)',
-                color: 'var(--paper)',
-                border: 'none', cursor: 'pointer',
-                width: 32, height: 32, borderRadius: 16,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backdropFilter: 'blur(4px)', transition: 'all 0.2s'
-              }}
-              title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
-            >
-              <Star size={14} fill={recipe.favorite ? 'currentColor' : 'none'} />
-            </button>
-          )}
-        </div>
-      )}
-      <div style={{ padding: 28, position: 'relative' }}>
-        {!recipe.hero_image && onToggleFavorite && (
+        )}
+        {matchCount != null && showPhoto && (
+          <div style={{ position: 'absolute', top: 12, left: 12, background: 'var(--ink)', color: 'var(--paper)', padding: '4px 10px', fontSize: 11, letterSpacing: '0.05em', borderRadius: 2 }}>
+            {matchCount}/{pantrySize} match
+          </div>
+        )}
+        {onToggleFavorite && (
           <button
             onClick={e => { e.stopPropagation(); onToggleFavorite(recipe); }}
             style={{
-              position: 'absolute', top: 16, right: 16,
-              background: 'transparent',
-              color: recipe.favorite ? 'var(--tomato)' : 'var(--ink-faint)',
-              border: 'none', cursor: 'pointer',
-              padding: 4
+              position: 'absolute', top: 12, right: 12,
+              background: recipe.favorite ? 'var(--tomato)' : (showPhoto ? 'rgba(31, 24, 16, 0.55)' : 'rgba(244, 237, 224, 0.85)'),
+              color: recipe.favorite ? 'var(--paper)' : (showPhoto ? 'var(--paper)' : 'var(--ink-soft)'),
+              border: showPhoto ? 'none' : '1px solid var(--line)',
+              cursor: 'pointer',
+              width: 32, height: 32, borderRadius: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(4px)', transition: 'all 0.2s'
             }}
             title={recipe.favorite ? 'Remove from favorites' : 'Add to favorites'}
           >
-            <Star size={16} fill={recipe.favorite ? 'currentColor' : 'none'} />
+            <Star size={14} fill={recipe.favorite ? 'currentColor' : 'none'} />
           </button>
         )}
-        <div className="flex items-start justify-between mb-4" style={{ paddingRight: !recipe.hero_image ? 28 : 0 }}>
-          <div className="label">
-            {!recipe.hero_image && matchCount != null
-              ? `${matchCount}/${pantrySize} match`
-              : (recipe.servings || `${(recipe.ingredients || []).length} ingredients`)}
-          </div>
-          <div className="flex items-center gap-2" style={{ color: 'var(--ink-faint)' }}>
+      </div>
+      <div className="card-body">
+        <div className="flex items-start justify-between mb-3 gap-3">
+          <div className="label">{eyebrow}</div>
+          <div className="flex items-center gap-2" style={{ color: 'var(--ink-faint)', flexShrink: 0 }}>
             {(recipe.cook_log || []).length > 0 && (
               <span className="text-xs flex items-center gap-1" title={`${recipe.cook_log.length} cook log entries`}>
                 <BookOpen size={11} /> {recipe.cook_log.length}
@@ -2991,28 +3319,36 @@ function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite 
             {recipe.source_url && <LinkIcon size={12} />}
           </div>
         </div>
-        <h2 className="display card-title text-2xl leading-tight mb-4" style={{ fontWeight: 400 }}>
+        <h2 className="display card-title text-2xl leading-tight mb-3" style={{ fontWeight: 400 }}>
           {recipe.title}
         </h2>
         {(recipe.diet_tags || []).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
+          <div className="flex flex-wrap gap-1.5 mb-3">
             {recipe.diet_tags.slice(0, 3).map(t => (
               <span key={t} className="tag-chip" style={{ pointerEvents: 'none' }}>{t}</span>
             ))}
           </div>
         )}
-        <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--ink-faint)' }}>
-          {recipe.prep_time && <span className="flex items-center gap-1"><Clock size={11} />{recipe.prep_time}</span>}
-          {recipe.cook_time && <span className="flex items-center gap-1"><ChefHat size={11} />{recipe.cook_time}</span>}
-        </div>
+        {hasMetaTimes ? (
+          <div className="flex items-center gap-4 text-xs mt-auto pt-1" style={{ color: 'var(--ink-faint)' }}>
+            {prep && <span className="flex items-center gap-1"><Clock size={11} />{prep}</span>}
+            {cook && <span className="flex items-center gap-1"><ChefHat size={11} />{cook}</span>}
+          </div>
+        ) : (
+          <div className="text-xs mt-auto pt-1" style={{ color: 'var(--ink-faint)' }}>
+            {(recipe.ingredients || []).length === 1
+              ? '1 ingredient'
+              : `${(recipe.ingredients || []).length} ingredients`}
+          </div>
+        )}
       </div>
     </article>
   );
 }
 
 // ---------- Add View ----------
-function AddView({ onCancel, onSaved, plan, recipeCount, requireFeature, bumpUsage, allRecipes = [], onViewRecipe }) {
-  const [mode, setMode] = useState('url');
+function AddView({ onCancel, onSaved, plan, recipeCount, requireFeature, bumpUsage, allRecipes = [], onViewRecipe, initialMode = 'url' }) {
+  const [mode, setMode] = useState(initialMode);
   const [url, setUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [error, setError] = useState(null);
