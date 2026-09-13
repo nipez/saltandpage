@@ -1940,6 +1940,7 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [userSubs, setUserSubs] = useState({ items: [] });
   const [prefs, setPrefs] = useState({ showIngredientInfo: true });
+  const [addInitialMode, setAddInitialMode] = useState('url');
 
   useEffect(() => {
     storage.list().then(r => { setRecipes(r); setLoading(false); });
@@ -2229,6 +2230,76 @@ export default function App() {
         .card:hover .card-title { color: var(--tomato); }
         .card-title { transition: color 0.2s; }
 
+        /* Empty cookbook — elevated path cards (interaction containers, not decorative cards) */
+        .path-card {
+          text-align: left;
+          background: var(--paper);
+          border: 1px solid var(--line);
+          padding: 28px 26px;
+          cursor: pointer;
+          transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s, background 0.25s;
+          width: 100%;
+          font-family: inherit;
+          color: inherit;
+          display: block;
+        }
+        .path-card:hover {
+          border-color: var(--ink);
+          background: var(--paper-deep);
+          transform: translateY(-2px);
+          box-shadow: 0 14px 32px -14px rgba(31, 24, 16, 0.18);
+        }
+        .path-card:hover .path-card-title { color: var(--tomato); }
+        .path-card:focus-visible {
+          outline: 2px solid var(--tomato);
+          outline-offset: 3px;
+        }
+        .path-card-title { transition: color 0.2s; }
+        .path-card-arrow {
+          color: var(--ink-faint);
+          transition: color 0.2s, transform 0.2s;
+        }
+        .path-card:hover .path-card-arrow {
+          color: var(--tomato);
+          transform: translateX(3px);
+        }
+
+        .empty-home-hero {
+          position: relative;
+        }
+        .empty-home-hero::after {
+          content: '';
+          display: block;
+          width: 48px;
+          height: 1px;
+          background: var(--tomato);
+          margin-top: 28px;
+          opacity: 0.85;
+        }
+
+        .how-strip {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+          border-top: 1px solid var(--line);
+          padding-top: 28px;
+        }
+        @media (min-width: 640px) {
+          .how-strip {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+          }
+        }
+        .how-step-num {
+          font-family: 'Fraunces', Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          font-size: 22px;
+          color: var(--tomato);
+          line-height: 1;
+          margin-bottom: 10px;
+        }
+
         .tag-chip { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--line); border-radius: 100px; font-size: 11px; letter-spacing: 0.05em; color: var(--ink-soft); background: transparent; cursor: pointer; transition: all 0.15s; font-family: inherit; }
         .tag-chip:hover { border-color: var(--ink-soft); color: var(--ink); }
         .tag-chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
@@ -2363,7 +2434,7 @@ export default function App() {
               onAddPantry={addPantryItem}
               onRemovePantry={removePantryItem}
               onClearPantry={clearPantry}
-              onAdd={() => setView('add')}
+              onAdd={(mode = 'url') => { setAddInitialMode(mode); setView('add'); }}
               onOpen={(r) => { setActiveRecipe(r.recipe || r); setView('detail'); }}
               onToggleFavorite={async (recipe) => {
                 const updated = { ...recipe, favorite: !recipe.favorite, updated_at: Date.now() };
@@ -2432,6 +2503,8 @@ export default function App() {
 
           {view === 'add' && (
             <AddView
+              key={addInitialMode}
+              initialMode={addInitialMode}
               plan={plan}
               recipeCount={recipes.length}
               requireFeature={requireFeature}
@@ -2441,8 +2514,8 @@ export default function App() {
                 const r = recipes.find(x => x.id === id);
                 if (r) { setActiveRecipe(r); setView('detail'); }
               }}
-              onCancel={() => setView('cookbook')}
-              onSaved={async () => { await refresh(); setView('cookbook'); }}
+              onCancel={() => { setAddInitialMode('url'); setView('cookbook'); }}
+              onSaved={async () => { setAddInitialMode('url'); await refresh(); setView('cookbook'); }}
             />
           )}
           {view === 'detail' && activeRecipe && (
@@ -2575,7 +2648,7 @@ export default function App() {
         {showOnboarding && (
           <OnboardingModal
             onDismiss={dismissOnboarding}
-            onAddRecipe={() => { dismissOnboarding(); setView('add'); }}
+            onAddRecipe={() => { dismissOnboarding(); setAddInitialMode('url'); setView('add'); }}
           />
         )}
       </div>
@@ -2684,6 +2757,21 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
 
   const isPantryMode = pantryIngredients.length > 0 || (pantry?.items?.length || 0) > 0;
   const persistentCount = pantry?.items?.length || 0;
+  const isEmptyCookbook = !loading && allRecipes.length === 0;
+  const hasActiveFilters = !!search || !!activeTag || !!activeCollection || isPantryMode || favoritesOnly;
+
+  // Zero-recipe home: hide search / pantry / filter scaffolding so the page
+  // doesn't read as an unfinished list shell over a void.
+  if (isEmptyCookbook) {
+    return (
+      <div className="max-w-4xl mx-auto px-8 py-12 md:py-20">
+        <EmptyCookbookHome onAddUrl={() => onAdd('url')} onAddManual={() => onAdd('manual')} />
+        <footer className="mt-20 pt-8" style={{ borderTop: '1px solid var(--line)' }}>
+          <p className="label text-center">Saved locally · ready when you are</p>
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-8 py-12">
@@ -2694,7 +2782,7 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
             {isPantryMode ? <em style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>What can I make?</em> : 'Every recipe, in one place'}
           </h1>
         </div>
-        <button className="btn-primary" onClick={onAdd}>
+        <button className="btn-primary" onClick={() => onAdd('url')}>
           <Plus size={16} /> New recipe
         </button>
       </header>
@@ -2864,7 +2952,7 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
           <p className="label">Loading the cookbook</p>
         </div>
       ) : recipes.length === 0 ? (
-        <EmptyState hasFilters={!!search || !!activeTag || !!activeCollection || isPantryMode} onAdd={onAdd} pantryMode={isPantryMode} />
+        <EmptyState hasFilters={hasActiveFilters} onAdd={() => onAdd('url')} pantryMode={isPantryMode} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger">
           {recipes.map(item => {
@@ -2891,6 +2979,113 @@ function ListView({ recipes, allRecipes, loading, search, setSearch, activeTag, 
   );
 }
 
+function EmptyCookbookHome({ onAddUrl, onAddManual }) {
+  return (
+    <div className="fadein">
+      <header className="empty-home-hero mb-12 md:mb-14 max-w-2xl">
+        <div className="label mb-5">Your cookbook</div>
+        <h1
+          className="leading-none mb-6"
+          style={{
+            fontFamily: 'Fraunces, Georgia, serif',
+            fontWeight: 400,
+            fontSize: 'clamp(2.75rem, 7vw, 4.25rem)',
+            letterSpacing: '-0.02em',
+            color: 'var(--ink)'
+          }}
+        >
+          salt <span style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>&amp;</span> page
+          <span style={{ color: 'var(--tomato)', fontStyle: 'italic' }}>.</span>
+        </h1>
+        <p
+          className="display text-xl md:text-2xl font-light leading-snug"
+          style={{ color: 'var(--ink-soft)', maxWidth: '28ch' }}
+        >
+          The cookbook for people who actually cook,{' '}
+          <em style={{ color: 'var(--ink)', fontStyle: 'italic', fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400 }}>
+            not just save
+          </em>
+          .
+        </p>
+      </header>
+
+      <section className="mb-14 md:mb-16" aria-label="Start your cookbook">
+        <div className="label mb-4">Begin with</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 stagger">
+          <button type="button" className="path-card" onClick={onAddUrl}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <span
+                style={{
+                  width: 40, height: 40,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid var(--line)', color: 'var(--tomato)'
+                }}
+              >
+                <LinkIcon size={18} />
+              </span>
+              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            </div>
+            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
+              Paste a URL
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              From any food blog. We skip the life story and pull just the recipe.
+            </p>
+          </button>
+
+          <button type="button" className="path-card" onClick={onAddManual}>
+            <div className="flex items-start justify-between gap-4 mb-5">
+              <span
+                style={{
+                  width: 40, height: 40,
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  border: '1px solid var(--line)', color: 'var(--tomato)'
+                }}
+              >
+                <Edit3 size={18} />
+              </span>
+              <ChevronRight size={16} className="path-card-arrow" style={{ marginTop: 4 }} />
+            </div>
+            <div className="path-card-title display text-2xl mb-2" style={{ fontWeight: 400 }}>
+              Add by hand
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Grandma’s card, a napkin note, or anything that isn’t online.
+            </p>
+          </button>
+        </div>
+      </section>
+
+      <section aria-label="How it works">
+        <div className="label mb-5">How it works</div>
+        <div className="how-strip">
+          <div>
+            <div className="how-step-num">01</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Import</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Paste a link or write it in. One clean recipe card.
+            </p>
+          </div>
+          <div>
+            <div className="how-step-num">02</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Cook</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Big type, timers, and a screen that stays awake.
+            </p>
+          </div>
+          <div>
+            <div className="how-step-num">03</div>
+            <div className="display text-lg mb-1" style={{ fontWeight: 450 }}>Saves locally</div>
+            <p className="text-sm leading-relaxed" style={{ color: 'var(--ink-soft)' }}>
+              Yours, on this device — no account required to start.
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function EmptyState({ hasFilters, onAdd, pantryMode }) {
   if (pantryMode) {
     return (
@@ -2909,17 +3104,9 @@ function EmptyState({ hasFilters, onAdd, pantryMode }) {
       </div>
     );
   }
+  // Fallback if ListView empty-home gate is bypassed
   return (
-    <div className="text-center py-24 max-w-md mx-auto">
-      <BookOpen className="mx-auto mb-6" size={32} style={{ color: 'var(--ink-faint)' }} />
-      <p className="display text-3xl mb-3 italic" style={{ color: 'var(--ink-soft)' }}>An empty cookbook.</p>
-      <p className="mb-8" style={{ color: 'var(--ink-faint)' }}>
-        Paste a URL from a food blog, or add one by hand. Your recipes save automatically.
-      </p>
-      <button className="btn-primary" onClick={onAdd}>
-        <Plus size={16} /> Add your first recipe
-      </button>
-    </div>
+    <EmptyCookbookHome onAddUrl={onAdd} onAddManual={onAdd} />
   );
 }
 
@@ -3011,8 +3198,8 @@ function RecipeCard({ recipe, onClick, matchCount, pantrySize, onToggleFavorite 
 }
 
 // ---------- Add View ----------
-function AddView({ onCancel, onSaved, plan, recipeCount, requireFeature, bumpUsage, allRecipes = [], onViewRecipe }) {
-  const [mode, setMode] = useState('url');
+function AddView({ onCancel, onSaved, plan, recipeCount, requireFeature, bumpUsage, allRecipes = [], onViewRecipe, initialMode = 'url' }) {
+  const [mode, setMode] = useState(initialMode);
   const [url, setUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [error, setError] = useState(null);
