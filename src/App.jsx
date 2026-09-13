@@ -3678,15 +3678,15 @@ function RecipeForm({ initial, onCancel, onSaved, title = 'New recipe', subtitle
       <div className="grid grid-cols-3 gap-6 mb-10">
         <div>
           <label className="label block mb-2">Prep</label>
-          <input className="input" placeholder="15 min" value={data.prep_time} onChange={e => update('prep_time', e.target.value)} />
+          <input className="input" placeholder="e.g. 15 min" value={data.prep_time} onChange={e => update('prep_time', e.target.value)} />
         </div>
         <div>
           <label className="label block mb-2">Cook</label>
-          <input className="input" placeholder="30 min" value={data.cook_time} onChange={e => update('cook_time', e.target.value)} />
+          <input className="input" placeholder="e.g. 30 min" value={data.cook_time} onChange={e => update('cook_time', e.target.value)} />
         </div>
         <div>
           <label className="label block mb-2">Serves</label>
-          <input className="input" placeholder="4" value={data.servings} onChange={e => update('servings', e.target.value)} />
+          <input className="input" placeholder="e.g. 4" value={data.servings} onChange={e => update('servings', e.target.value)} />
         </div>
       </div>
 
@@ -3701,7 +3701,7 @@ function RecipeForm({ initial, onCancel, onSaved, title = 'New recipe', subtitle
               <span className="mono text-xs w-6" style={{ color: 'var(--ink-faint)' }}>{String(i + 1).padStart(2, '0')}</span>
               <input
                 className="input"
-                placeholder="2 cups flour"
+                placeholder="Add an ingredient…"
                 value={ing}
                 onChange={e => updateList('ingredients', i, e.target.value)}
               />
@@ -7054,6 +7054,7 @@ function OnboardingModal({ onDismiss, onAddRecipe }) {
       >
         <button
           onClick={onDismiss}
+          aria-label="Skip tour"
           style={{
             position: 'absolute', top: 16, right: 16,
             background: 'transparent', border: 'none', cursor: 'pointer',
@@ -7061,7 +7062,7 @@ function OnboardingModal({ onDismiss, onAddRecipe }) {
             letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit'
           }}
         >
-          Skip
+          Skip tour
         </button>
 
         {slide.icon && <div className="mb-6">{slide.icon}</div>}
@@ -7093,14 +7094,7 @@ function OnboardingModal({ onDismiss, onAddRecipe }) {
           ))}
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <button
-            className="btn-ghost"
-            onClick={onDismiss}
-            style={{ visibility: slide.isLast ? 'hidden' : 'visible' }}
-          >
-            Skip tour
-          </button>
+        <div className="flex items-center justify-end gap-3">
           <button
             className="btn-primary"
             onClick={() => slide.isLast ? onAddRecipe() : setStep(step + 1)}
