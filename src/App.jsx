@@ -2811,6 +2811,36 @@ export default function App() {
         .nav-link.active { color: var(--ink); }
         .nav-link.active::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--tomato); }
 
+        /* Mobile icon row under the wordmark — larger glyphs, real tap targets */
+        .nav-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
+          min-width: 44px;
+          min-height: 44px;
+          padding: 10px 12px;
+          color: var(--ink-faint);
+          cursor: pointer;
+          border: none;
+          background: transparent;
+          transition: color 0.2s;
+          position: relative;
+          font-family: 'DM Sans', sans-serif;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .nav-icon:hover { color: var(--ink-soft); }
+        .nav-icon.active { color: var(--ink); }
+        .nav-icon.active::after { content: ''; position: absolute; bottom: 4px; left: 10px; right: 10px; height: 1px; background: var(--tomato); }
+        .nav-icon .nav-count {
+          font-size: 12px;
+          font-weight: 500;
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em;
+          line-height: 1;
+          color: var(--tomato);
+        }
+
         .divider-fancy { display: flex; align-items: center; gap: 16px; color: var(--ink-faint); }
         .divider-fancy::before, .divider-fancy::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
@@ -3220,28 +3250,28 @@ function TopNav({ view, setView, recipeCount, shoppingCount, journalCount, planC
           <button
             onClick={() => setView('settings')}
             className={`nav-link ${view === 'settings' ? 'active' : ''}`}
-            style={{ padding: 6 }}
+            style={{ padding: 8 }}
             title="Settings & demo mode"
           >
-            <SettingsIcon size={16} />
+            <SettingsIcon size={18} strokeWidth={1.75} />
           </button>
         </div>
       </div>
-      {/* Mobile nav row */}
-      <div className="md:hidden flex items-center gap-2 px-8 pb-3">
-        <button className={`nav-link ${view === 'cookbook' ? 'active' : ''}`} onClick={() => setView('cookbook')} title="Cookbook">
-          <BookOpen size={14} />
+      {/* Mobile nav row — larger icons + ~44px tap targets under the wordmark */}
+      <div className="md:hidden flex items-center gap-0.5 px-5 pb-1.5">
+        <button className={`nav-icon ${view === 'cookbook' ? 'active' : ''}`} onClick={() => setView('cookbook')} title="Cookbook" aria-label="Cookbook">
+          <BookOpen size={20} strokeWidth={1.75} />
         </button>
-        <button className={`nav-link ${view === 'plan' ? 'active' : ''}`} onClick={() => setView('plan')} title="Plan">
-          <CalendarDays size={14} />
-          {planCount > 0 && <span style={{ marginLeft: 4, color: 'var(--tomato)', fontSize: 11 }}>{planCount}</span>}
+        <button className={`nav-icon ${view === 'plan' ? 'active' : ''}`} onClick={() => setView('plan')} title="Plan" aria-label="Plan">
+          <CalendarDays size={20} strokeWidth={1.75} />
+          {planCount > 0 && <span className="nav-count">{planCount}</span>}
         </button>
-        <button className={`nav-link ${view === 'shopping' ? 'active' : ''}`} onClick={() => setView('shopping')} title="Shopping">
-          <ShoppingBasket size={14} />
-          {shoppingCount > 0 && <span style={{ marginLeft: 4, color: 'var(--tomato)', fontSize: 11 }}>{shoppingCount}</span>}
+        <button className={`nav-icon ${view === 'shopping' ? 'active' : ''}`} onClick={() => setView('shopping')} title="Shopping" aria-label="Shopping">
+          <ShoppingBasket size={20} strokeWidth={1.75} />
+          {shoppingCount > 0 && <span className="nav-count">{shoppingCount}</span>}
         </button>
-        <button className={`nav-link ${view === 'journal' ? 'active' : ''}`} onClick={() => setView('journal')} title="Journal">
-          <History size={14} />
+        <button className={`nav-icon ${view === 'journal' ? 'active' : ''}`} onClick={() => setView('journal')} title="Journal" aria-label="Journal">
+          <History size={20} strokeWidth={1.75} />
         </button>
       </div>
     </nav>
